@@ -1,0 +1,874 @@
+{
+  "info": {
+    "_postman_id": "yallarhorn-api-collection",
+    "name": "Yallarhorn API",
+    "description": "API collection for Yallarhorn - Media aggregation and feed management system\n\n## Authentication\nThis API currently does not require authentication.\n\n## Base URL\nSet the `baseUrl` variable to your Yallarhorn server (e.g., `http://localhost:3000`)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "channelId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "episodeId",
+      "value": "1",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Channels",
+      "description": "Channel management endpoints",
+      "item": [
+        {
+          "name": "List Channels",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/channels?page=1&limit=20&status=active&search=",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "channels"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number for pagination"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Number of items per page"
+                },
+                {
+                  "key": "status",
+                  "value": "active",
+                  "description": "Filter by status: active, paused, error"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search term for channel name or URL"
+                }
+              ]
+            },
+            "description": "Retrieve a paginated list of all channels with optional filtering"
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/channels?page=1&limit=20"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id\": 1,\n      \"name\": \"Tech Talk Weekly\",\n      \"url\": \"https://example.com/feed.xml\",\n      \"status\": \"active\",\n      \"autoDownload\": true,\n      \"downloadVideo\": false,\n      \"keepLast\": 10,\n      \"lastRefresh\": \"2025-01-15T10:30:00Z\",\n      \"episodeCount\": 45,\n      \"createdAt\": \"2024-06-01T00:00:00Z\"\n    }\n  ],\n  \"pagination\": {\n    \"page\": 1,\n    \"limit\": 20,\n    \"total\": 1,\n    \"totalPages\": 1\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Channel",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/channels/{{channelId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "channels", "{{channelId}}"]
+            },
+            "description": "Retrieve a single channel by ID"
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/channels/1"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": 1,\n    \"name\": \"Tech Talk Weekly\",\n    \"url\": \"https://example.com/feed.xml\",\n    \"status\": \"active\",\n    \"autoDownload\": true,\n    \"downloadVideo\": false,\n    \"keepLast\": 10,\n    \"lastRefresh\": \"2025-01-15T10:30:00Z\",\n    \"episodeCount\": 45,\n    \"createdAt\": \"2024-06-01T00:00:00Z\",\n    \"updatedAt\": \"2025-01-15T10:30:00Z\"\n  }\n}"
+            },
+            {
+              "name": "Not Found",
+              "originalRequest": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/channels/999"
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": false,\n  \"error\": \"Channel not found\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Create Channel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/channels",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "channels"]
+            },
+            "description": "Create a new channel",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"My Podcast\",\n  \"url\": \"https://example.com/feed.xml\",\n  \"autoDownload\": true,\n  \"downloadVideo\": false,\n  \"keepLast\": 10\n}"
+            }
+          },
+          "response": [
+            {
+              "name": "Created Response",
+              "originalRequest": {
+                "method": "POST",
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/channels"
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": 1,\n    \"name\": \"My Podcast\",\n    \"url\": \"https://example.com/feed.xml\",\n    \"status\": \"active\",\n    \"autoDownload\": true,\n    \"downloadVideo\": false,\n    \"keepLast\": 10,\n    \"lastRefresh\": null,\n    \"episodeCount\": 0,\n    \"createdAt\": \"2025-01-15T14:30:00Z\"\n  }\n}"
+            },
+            {
+              "name": "Validation Error",
+              "originalRequest": {
+                "method": "POST",
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/channels"
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": false,\n  \"error\": \"Validation failed\",\n  \"details\": [\n    {\n      \"field\": \"url\",\n      \"message\": \"Invalid URL format\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Channel",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/channels/{{channelId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "channels", "{{channelId}}"]
+            },
+            "description": "Update channel properties (partial update)",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Podcast Name\",\n  \"autoDownload\": false,\n  \"keepLast\": 20\n}"
+            }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "PATCH",
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/channels/1"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": 1,\n    \"name\": \"Updated Podcast Name\",\n    \"url\": \"https://example.com/feed.xml\",\n    \"status\": \"active\",\n    \"autoDownload\": false,\n    \"downloadVideo\": false,\n    \"keepLast\": 20,\n    \"lastRefresh\": \"2025-01-15T10:30:00Z\",\n    \"episodeCount\": 45,\n    \"createdAt\": \"2024-06-01T00:00:00Z\",\n    \"updatedAt\": \"2025-01-15T14:30:00Z\"\n  }\n}"
+            },
+            {
+              "name": "Not Found",
+              "originalRequest": {
+                "method": "PATCH",
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/channels/999"
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": false,\n  \"error\": \"Channel not found\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete Channel",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/channels/{{channelId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "channels", "{{channelId}}"]
+            },
+            "description": "Delete a channel and optionally its episodes"
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "DELETE",
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/channels/1"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"Channel deleted successfully\"\n}"
+            },
+            {
+              "name": "Not Found",
+              "originalRequest": {
+                "method": "DELETE",
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/channels/999"
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": false,\n  \"error\": \"Channel not found\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Refresh Channel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/channels/{{channelId}}/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "channels", "{{channelId}}", "refresh"]
+            },
+            "description": "Trigger an immediate refresh of a channel's feed to check for new episodes"
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "POST",
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/channels/1/refresh"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"Channel refresh queued\",\n  \"data\": {\n    \"channelId\": 1,\n    \"refreshStatus\": \"queued\",\n    \"newEpisodes\": 3\n  }\n}"
+            },
+            {
+              "name": "Channel Not Found",
+              "originalRequest": {
+                "method": "POST",
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/channels/999/refresh"
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": false,\n  \"error\": \"Channel not found\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Episodes",
+      "description": "Episode management endpoints",
+      "item": [
+        {
+          "name": "List Episodes",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/channels/{{channelId}}/episodes?page=1&limit=20&status=&search=",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "channels", "{{channelId}}", "episodes"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number for pagination"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Number of items per page"
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "description": "Filter by status: pending, downloading, completed, failed"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search term for episode title"
+                }
+              ]
+            },
+            "description": "Retrieve a paginated list of episodes for a specific channel"
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/channels/1/episodes?page=1&limit=20"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id\": 1,\n      \"channelId\": 1,\n      \"title\": \"Episode 42: The Future of Tech\",\n      \"description\": \"Discussing emerging technologies\",\n      \"publishedAt\": \"2025-01-10T09:00:00Z\",\n      \"duration\": 3600,\n      \"status\": \"completed\",\n      \"downloadedAt\": \"2025-01-10T10:30:00Z\",\n      \"fileSize\": 52428800,\n      \"createdAt\": \"2025-01-10T09:05:00Z\"\n    }\n  ],\n  \"pagination\": {\n    \"page\": 1,\n    \"limit\": 20,\n    \"total\": 45,\n    \"totalPages\": 3\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Episode",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/episodes/{{episodeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "episodes", "{{episodeId}}"]
+            },
+            "description": "Retrieve a single episode by ID"
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/episodes/1"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": 1,\n    \"channelId\": 1,\n    \"channelName\": \"Tech Talk Weekly\",\n    \"title\": \"Episode 42: The Future of Tech\",\n    \"description\": \"Discussing emerging technologies and their impact on society.\",\n    \"publishedAt\": \"2025-01-10T09:00:00Z\",\n    \"duration\": 3600,\n    \"status\": \"completed\",\n    \"downloadedAt\": \"2025-01-10T10:30:00Z\",\n    \"fileSize\": 52428800,\n    \"filePath\": \"/media/episodes/tech-talk/ep42.mp3\",\n    \"createdAt\": \"2025-01-10T09:05:00Z\",\n    \"updatedAt\": \"2025-01-10T10:30:00Z\"\n  }\n}"
+            },
+            {
+              "name": "Not Found",
+              "originalRequest": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/episodes/999"
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": false,\n  \"error\": \"Episode not found\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete Episode",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/episodes/{{episodeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "episodes", "{{episodeId}}"]
+            },
+            "description": "Delete an episode and its associated downloaded file"
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "DELETE",
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/episodes/1"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"Episode deleted successfully\"\n}"
+            },
+            {
+              "name": "Not Found",
+              "originalRequest": {
+                "method": "DELETE",
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/episodes/999"
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": false,\n  \"error\": \"Episode not found\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Retry Episode",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/episodes/{{episodeId}}/retry",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "episodes", "{{episodeId}}", "retry"]
+            },
+            "description": "Retry downloading a failed episode"
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "POST",
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/episodes/1/retry"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"Episode download queued for retry\",\n  \"data\": {\n    \"id\": 1,\n    \"status\": \"pending\",\n    \"previousError\": null\n  }\n}"
+            },
+            {
+              "name": "Episode Not Failed",
+              "originalRequest": {
+                "method": "POST",
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/episodes/1/retry"
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": false,\n  \"error\": \"Episode is not in a failed state\"\n}"
+            },
+            {
+              "name": "Not Found",
+              "originalRequest": {
+                "method": "POST",
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/episodes/999/retry"
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": false,\n  \"error\": \"Episode not found\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "System",
+      "description": "System status and health endpoints",
+      "item": [
+        {
+          "name": "System Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "status"]
+            },
+            "description": "Get comprehensive system status including database, scheduler, storage, and recent activity"
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/status"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"status\": \"healthy\",\n    \"version\": \"1.0.0\",\n    \"uptime\": 86400,\n    \"timestamp\": \"2025-01-15T14:30:00Z\",\n    \"database\": {\n      \"status\": \"connected\",\n      \"migrations\": 5,\n      \"lastMigration\": \"20241201000000\"\n    },\n    \"scheduler\": {\n      \"status\": \"running\",\n      \"activeJobs\": 3,\n      \"nextRefresh\": \"2025-01-15T15:00:00Z\"\n    },\n    \"storage\": {\n      \"totalBytes\": 107374182400,\n      \"usedBytes\": 21474836480,\n      \"availableBytes\": 85899345920,\n      \"percentUsed\": 20\n    },\n    \"stats\": {\n      \"totalChannels\": 15,\n      \"activeChannels\": 12,\n      \"totalEpisodes\": 450,\n      \"downloadedEpisodes\": 380,\n      \"failedEpisodes\": 5,\n      \"pendingEpisodes\": 10\n    },\n    \"recentActivity\": [\n      {\n        \"type\": \"download\",\n        \"channelName\": \"Tech Talk\",\n        \"episodeTitle\": \"Episode 42\",\n        \"timestamp\": \"2025-01-15T14:25:00Z\"\n      }\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "health"]
+            },
+            "description": "Lightweight health check endpoint for load balancers and monitoring"
+          },
+          "response": [
+            {
+              "name": "Healthy Response",
+              "originalRequest": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/health"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"status\": \"healthy\",\n  \"timestamp\": \"2025-01-15T14:30:00Z\"\n}"
+            },
+            {
+              "name": "Unhealthy Response",
+              "originalRequest": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/health"
+                }
+              },
+              "status": "Service Unavailable",
+              "code": 503,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"status\": \"unhealthy\",\n  \"timestamp\": \"2025-01-15T14:30:00Z\",\n  \"reason\": \"Database connection failed\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Queue Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/queue",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "queue"]
+            },
+            "description": "Get the current download queue status and active downloads"
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/queue"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"active\": {\n      \"episodeId\": 42,\n      \"episodeTitle\": \"Episode 42: The Future of Tech\",\n      \"channelName\": \"Tech Talk Weekly\",\n      \"progress\": 45,\n      \"bytesDownloaded\": 23592960,\n      \"bytesTotal\": 52428800,\n      \"startedAt\": \"2025-01-15T14:20:00Z\"\n    },\n    \"queued\": [\n      {\n        \"episodeId\": 43,\n        \"episodeTitle\": \"Episode 43: AI Revolution\",\n        \"channelName\": \"Tech Talk Weekly\",\n        \"position\": 1\n      },\n      {\n        \"episodeId\": 50,\n        \"episodeTitle\": \"Episode 50: Special Guest\",\n        \"channelName\": \"Another Podcast\",\n        \"position\": 2\n      }\n    ],\n    \"stats\": {\n      \"totalQueued\": 2,\n      \"maxConcurrent\": 3,\n      \"activeCount\": 1\n    }\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Triggers",
+      "description": "Manual trigger endpoints",
+      "item": [
+        {
+          "name": "Refresh All Channels",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/refresh-all",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "refresh-all"]
+            },
+            "description": "Trigger a refresh of all active channels"
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "POST",
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/refresh-all"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"All channels queued for refresh\",\n  \"data\": {\n    \"channelsQueued\": 12,\n    \"channelsSkipped\": 3,\n    \"skippedReason\": \"Paused or in error state\"\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Feeds",
+      "description": "RSS and Atom feed endpoints for media players",
+      "item": [
+        {
+          "name": "Channel Audio RSS",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/rss+xml"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/feed/{{channelId}}/audio.rss",
+              "host": ["{{baseUrl}}"],
+              "path": ["feed", "{{channelId}}", "audio.rss"]
+            },
+            "description": "Get RSS 2.0 audio feed for a specific channel (podcast format)"
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/feed/1/audio.rss"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "xml",
+              "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rss version=\"2.0\" xmlns:itunes=\"http://www.itunes.com/dtds/podcast-1.0.dtd\">\n  <channel>\n    <title>Tech Talk Weekly</title>\n    <description>Weekly tech discussions</description>\n    <link>https://example.com</link>\n    <language>en-us</language>\n    <itunes:category text=\"Technology\"/>\n    <item>\n      <title>Episode 42: The Future of Tech</title>\n      <description>Discussing emerging technologies</description>\n      <pubDate>Fri, 10 Jan 2025 09:00:00 GMT</pubDate>\n      <enclosure url=\"{{baseUrl}}/media/episodes/tech-talk/ep42.mp3\" length=\"52428800\" type=\"audio/mpeg\"/>\n      <itunes:duration>1:00:00</itunes:duration>\n    </item>\n  </channel>\n</rss>"
+            }
+          ]
+        },
+        {
+          "name": "Channel Video RSS",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/rss+xml"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/feed/{{channelId}}/video.rss",
+              "host": ["{{baseUrl}}"],
+              "path": ["feed", "{{channelId}}", "video.rss"]
+            },
+            "description": "Get RSS 2.0 video feed for a specific channel (video podcast format)"
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/feed/1/video.rss"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "xml",
+              "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rss version=\"2.0\" xmlns:itunes=\"http://www.itunes.com/dtds/podcast-1.0.dtd\" xmlns:media=\"http://search.yahoo.com/mrss/\">\n  <channel>\n    <title>Tech Talk Weekly (Video)</title>\n    <description>Weekly tech discussions</description>\n    <link>https://example.com</link>\n    <language>en-us</language>\n    <itunes:category text=\"Technology\"/>\n    <item>\n      <title>Episode 42: The Future of Tech</title>\n      <description>Discussing emerging technologies</description>\n      <pubDate>Fri, 10 Jan 2025 09:00:00 GMT</pubDate>\n      <enclosure url=\"{{baseUrl}}/media/episodes/tech-talk/ep42.mp4\" length=\"209715200\" type=\"video/mp4\"/>\n      <media:content url=\"{{baseUrl}}/media/episodes/tech-talk/ep42.mp4\" type=\"video/mp4\"/>\n      <itunes:duration>1:00:00</itunes:duration>\n    </item>\n  </channel>\n</rss>"
+            }
+          ]
+        },
+        {
+          "name": "Channel Atom Feed",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/atom+xml"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/feed/{{channelId}}/atom.xml",
+              "host": ["{{baseUrl}}"],
+              "path": ["feed", "{{channelId}}", "atom.xml"]
+            },
+            "description": "Get Atom feed for a specific channel"
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/feed/1/atom.xml"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "xml",
+              "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<feed xmlns=\"http://www.w3.org/2005/Atom\">\n  <title>Tech Talk Weekly</title>\n  <link href=\"{{baseUrl}}/feed/1/atom.xml\" rel=\"self\"/>\n  <link href=\"https://example.com\"/>\n  <updated>2025-01-15T14:30:00Z</updated>\n  <id>{{baseUrl}}/feed/1/atom.xml</id>\n  <entry>\n    <title>Episode 42: The Future of Tech</title>\n    <link href=\"{{baseUrl}}/media/episodes/tech-talk/ep42.mp3\"/>\n    <id>episode-42</id>\n    <updated>2025-01-10T09:00:00Z</updated>\n    <summary>Discussing emerging technologies</summary>\n    <content type=\"html\">&lt;p&gt;Discussing emerging technologies&lt;/p&gt;</content>\n  </entry>\n</feed>"
+            }
+          ]
+        },
+        {
+          "name": "All Channels Audio RSS",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/rss+xml"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/feeds/all.rss",
+              "host": ["{{baseUrl}}"],
+              "path": ["feeds", "all.rss"]
+            },
+            "description": "Get combined RSS 2.0 audio feed for all channels"
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/feeds/all.rss"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "xml",
+              "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rss version=\"2.0\" xmlns:itunes=\"http://www.itunes.com/dtds/podcast-1.0.dtd\">\n  <channel>\n    <title>Yallarhorn - All Feeds</title>\n    <description>Combined feed of all subscribed channels</description>\n    <link>{{baseUrl}}</link>\n    <language>en-us</language>\n    <itunes:category text=\"Technology\"/>\n    <item>\n      <title>[Tech Talk Weekly] Episode 42: The Future of Tech</title>\n      <description>Discussing emerging technologies</description>\n      <pubDate>Fri, 10 Jan 2025 09:00:00 GMT</pubDate>\n      <enclosure url=\"{{baseUrl}}/media/episodes/tech-talk/ep42.mp3\" length=\"52428800\" type=\"audio/mpeg\"/>\n      <itunes:duration>1:00:00</itunes:duration>\n    </item>\n  </channel>\n</rss>"
+            }
+          ]
+        },
+        {
+          "name": "All Channels Video RSS",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/rss+xml"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/feeds/all-video.rss",
+              "host": ["{{baseUrl}}"],
+              "path": ["feeds", "all-video.rss"]
+            },
+            "description": "Get combined RSS 2.0 video feed for all channels"
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/feeds/all-video.rss"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "xml",
+              "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rss version=\"2.0\" xmlns:itunes=\"http://www.itunes.com/dtds/podcast-1.0.dtd\" xmlns:media=\"http://search.yahoo.com/mrss/\">\n  <channel>\n    <title>Yallarhorn - All Video Feeds</title>\n    <description>Combined video feed of all subscribed channels</description>\n    <link>{{baseUrl}}</link>\n    <language>en-us</language>\n    <itunes:category text=\"Technology\"/>\n    <item>\n      <title>[Tech Talk Weekly] Episode 42: The Future of Tech</title>\n      <description>Discussing emerging technologies</description>\n      <pubDate>Fri, 10 Jan 2025 09:00:00 GMT</pubDate>\n      <enclosure url=\"{{baseUrl}}/media/episodes/tech-talk/ep42.mp4\" length=\"209715200\" type=\"video/mp4\"/>\n      <media:content url=\"{{baseUrl}}/media/episodes/tech-talk/ep42.mp4\" type=\"video/mp4\"/>\n      <itunes:duration>1:00:00</itunes:duration>\n    </item>\n  </channel>\n</rss>"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

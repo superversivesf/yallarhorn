@@ -1,0 +1,40 @@
+# Docker Compose Override for Development
+# This file is automatically loaded by docker-compose when running `docker-compose up`
+# It overrides/extends the base docker-compose.yml configuration
+
+services:
+  app:
+    # Use development environment
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:5001
+      # Enable detailed errors in development
+      - ASPNETCORE_DETAILEDERRORS=true
+    
+    # Mount source code for hot reload (if enabled)
+    # volumes:
+    #   - ./src/Yallarhorn:/app/src:ro
+    
+    # Override restart policy for development
+    restart: "no"
+    
+    # Enable debugging port (uncomment if needed)
+    # ports:
+    #   - "5001:5001"
+    #   - "9229:9229"  # Debugger port
+    
+    # Development-specific labels
+    labels:
+      - "com.yallarhorn.environment=development"
+
+# No volume overrides - use named volumes from base config
+# Change to bind mounts below if you prefer local file access for development
+
+# To use local bind mounts instead of named volumes, uncomment:
+# volumes:
+#   yallarhorn-data:
+#     driver: local
+#     driver_opts:
+#       type: none
+#       device: ./data
+#       o: bind

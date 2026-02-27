@@ -1,0 +1,45 @@
+# Build stage
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+# Copy solution and project files
+COPY ["src/Yallarhorn/Yallarhorn.csproj", "Yallarhorn/"]
+COPY ["tests/Yallarhorn.Tests/Yallarhorn.Tests.csproj", "Yallarhorn.Tests/"]
+
+# Restore dependencies
+RUN dotnet restore "Yallarhorn/Yallarhorn.csproj"
+
+# Copy source code
+COPY src/Yallarhorn/. "Yallarhorn/"
+
+# Build and publish
+WORKDIR "/src/Yallarhorn"
+RUN dotnet publish "Yallarhorn.csproj" -c Release -o /app/publish --no-restore
+
+# Runtime stage
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+WORKDIR /app
+
+# Install yt-dlp, ffmpeg, and curl for media processing and health checks
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    yt-dlp \
+    ffmpeg \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy published application
+COPY --from=build /app/publish .
+
+# Create data directory for persistence
+RUN mkdir -p /app/data
+
+# Expose port 5001
+EXPOSE 5001
+
+# Set environment variables
+ENV ASPNETCORE_URLS=http://+:5001
+ENV ASPNETCORE_ENVIRONMENT=Production
+
+# Set entrypoint
+ENTRYPOINT ["dotnet", "Yallarhorn.dll"]

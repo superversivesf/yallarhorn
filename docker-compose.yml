@@ -1,0 +1,54 @@
+# Docker Compose for Yallarhorn Podcast Server
+# Production configuration - use docker-compose.override.yml for development
+
+services:
+  app:
+    image: yallarhorn:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: yallarhorn
+    restart: unless-stopped
+    
+    ports:
+      - "5001:5001"
+    
+    volumes:
+      # Data persistence for SQLite database and downloads
+      - yallarhorn-data:/app/data
+      # Configuration file (read-only)
+      - ./yallarhorn.yaml:/app/yallarhorn.yaml:ro
+      # Downloads directory persistence
+      - yallarhorn-downloads:/app/downloads
+      # Temp directory (can be ephemeral)
+      - yallarhorn-temp:/app/temp
+    
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:5001
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    networks:
+      - yallarhorn-network
+    
+    labels:
+      - "com.yallarhorn.description=Podcast server for YouTube channels"
+      - "com.yallarhorn.version=1.0"
+
+networks:
+  yallarhorn-network:
+    driver: bridge
+
+volumes:
+  yallarhorn-data:
+    name: yallarhorn-data
+  yallarhorn-downloads:
+    name: yallarhorn-downloads
+  yallarhorn-temp:
+    name: yallarhorn-temp

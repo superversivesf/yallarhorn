@@ -1,0 +1,74 @@
+# Version control
+.git/
+.gitignore
+.gitattributes
+
+# Build outputs
+bin/
+obj/
+out/
+logs/
+artifacts/
+
+# IDE and editor configs
+.vs/
+.idea/
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.rsuser
+*.swp
+*.swo
+*~
+
+# Documentation
+docs/
+
+# Test projects
+tests/
+
+# Postman collections
+postman/
+
+# Environment and secrets
+.env
+.env.*
+appsettings.*.json
+!appsettings.json
+!appsettings.Development.json
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+
+# Logs
+*.log
+
+# Docker (self-referential)
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.azure-pipelines/
+
+# Project-specific
+.hive/
+data/
+
+# Solution and project files (not needed in build context)
+*.sln
