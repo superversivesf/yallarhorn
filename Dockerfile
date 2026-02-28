@@ -2,9 +2,8 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-# Copy solution and project files
+# Copy project files
 COPY ["src/Yallarhorn/Yallarhorn.csproj", "Yallarhorn/"]
-COPY ["tests/Yallarhorn.Tests/Yallarhorn.Tests.csproj", "Yallarhorn.Tests/"]
 
 # Restore dependencies
 RUN dotnet restore "Yallarhorn/Yallarhorn.csproj"
