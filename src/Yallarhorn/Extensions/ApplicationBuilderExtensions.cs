@@ -82,13 +82,9 @@ public static class ApplicationBuilderExtensions
     /// Should be called early in the pipeline configuration.
     /// </summary>
     /// <param name="app">The web application.</param>
-    /// <param name="seedDevelopmentData">Whether to seed development data (default: false in production, true in development).</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public static async Task UseYallarhornPipelineAsync(this WebApplication app, bool? seedDevelopmentData = null)
+    public static async Task UseYallarhornPipelineAsync(this WebApplication app)
     {
-        // Determine if we should seed development data
-        var shouldSeed = seedDevelopmentData ?? app.Environment.IsDevelopment();
-
         // Ensure database is created/migrated
         using (var scope = app.Services.CreateScope())
         {
@@ -101,13 +97,6 @@ public static class ApplicationBuilderExtensions
             var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
             var channelSeeder = scope.ServiceProvider.GetRequiredService<ChannelSeeder>();
             await SeedChannelsFromConfigurationAsync(configuration, channelSeeder);
-
-            // Seed development data in development environment
-            if (shouldSeed)
-            {
-                var seeder = scope.ServiceProvider.GetRequiredService<DevelopmentSeeder>();
-                await seeder.SeedAsync();
-            }
         }
     }
 

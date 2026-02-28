@@ -74,7 +74,7 @@ builder.WebHost.ConfigureKestrel(options =>
 var app = builder.Build();
 
 // Configure request pipeline
-// Initialize database and seed development data
+// Initialize database and seed channels from config
 await app.UseYallarhornPipelineAsync();
 
 // Serilog enrichers are configured in AddYallarhornLogging

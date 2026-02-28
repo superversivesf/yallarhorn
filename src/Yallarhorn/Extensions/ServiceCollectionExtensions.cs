@@ -85,7 +85,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IDownloadQueueRepository, DownloadQueueRepository>();
 
         // Database seeding
-        services.AddScoped<DevelopmentSeeder>();
         services.AddScoped<ChannelSeeder>();
 
         // Phase 3 Services

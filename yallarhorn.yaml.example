@@ -1,0 +1,59 @@
+# Yallarhorn Podcast Server Configuration
+# Copy this file to yallarhorn.yaml and customize
+
+version: "1.0"
+
+# Polling interval in seconds (minimum 300 = 5 minutes)
+pollInterval: 3600
+
+# Maximum concurrent downloads
+maxConcurrentDownloads: 3
+
+# Directories for downloaded content
+downloadDir: "./downloads"
+tempDir: "./temp"
+
+# Server configuration
+server:
+  host: "0.0.0.0"
+  port: 5001
+  baseUrl: "http://localhost:5001"
+  feedPath: "/feeds"
+  useHttps: false
+  maxConcurrentConnections: 100
+  requestTimeoutSeconds: 30
+
+# Database configuration (SQLite)
+database:
+  path: "./data/yallarhorn.db"
+  poolSize: 5
+
+# Transcode settings for media processing
+transcodeSettings:
+  audioFormat: "mp3"
+  audioBitrate: "192k"
+  audioSampleRate: 44100
+  videoFormat: "mp4"
+  videoCodec: "h264"
+  videoQuality: 23
+  threads: 4
+  keepOriginal: false
+
+# Authentication (disabled by default)
+auth:
+  feedCredentials:
+    enabled: false
+    realm: "Yallarhorn Feeds"
+  adminAuth:
+    enabled: false
+
+# Channels to monitor
+# At least one channel is required
+# feedType options: "audio", "video", "both"
+channels:
+  - name: "Example Channel"
+    url: "https://www.youtube.com/@example"
+    episodeCount: 50
+    enabled: true
+    feedType: "audio"
+    tags: []
