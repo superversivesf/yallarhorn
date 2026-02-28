@@ -47,6 +47,11 @@ Thumbs.db
 *.db-shm
 *.db-wal
 
+# Downloaded content and temp files
+/downloads/
+/temp/
+/data/
+
 # Media files (can be large, typically excluded from git)
 # Uncomment if you want to track media
 # /data/media/

@@ -86,6 +86,7 @@ public static class ServiceCollectionExtensions
 
         // Database seeding
         services.AddScoped<DevelopmentSeeder>();
+        services.AddScoped<ChannelSeeder>();
 
         // Phase 3 Services
         services.AddSingleton<IYtDlpClient, YtDlpClient>();
