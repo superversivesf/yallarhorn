@@ -2,6 +2,8 @@ namespace Yallarhorn.Services;
 
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.Extensions.Options;
+using Yallarhorn.Configuration;
 using Yallarhorn.Data.Entities;
 using Yallarhorn.Data.Enums;
 using Yallarhorn.Data.Repositories;
@@ -19,6 +21,7 @@ public class CombinedFeedService : ICombinedFeedService
     private readonly IChannelRepository _channelRepository;
     private readonly IEpisodeRepository _episodeRepository;
     private readonly IRssFeedBuilder _rssFeedBuilder;
+    private readonly ServerOptions _serverOptions;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CombinedFeedService"/> class.
@@ -26,14 +29,17 @@ public class CombinedFeedService : ICombinedFeedService
     /// <param name="channelRepository">Channel repository.</param>
     /// <param name="episodeRepository">Episode repository.</param>
     /// <param name="rssFeedBuilder">RSS feed builder.</param>
+    /// <param name="serverOptions">Server configuration options.</param>
     public CombinedFeedService(
         IChannelRepository channelRepository,
         IEpisodeRepository episodeRepository,
-        IRssFeedBuilder rssFeedBuilder)
+        IRssFeedBuilder rssFeedBuilder,
+        IOptions<ServerOptions> serverOptions)
     {
         _channelRepository = channelRepository;
         _episodeRepository = episodeRepository;
         _rssFeedBuilder = rssFeedBuilder;
+        _serverOptions = serverOptions.Value;
     }
 
     /// <inheritdoc />
@@ -76,8 +82,8 @@ public class CombinedFeedService : ICombinedFeedService
             syntheticChannel,
             orderedEpisodes,
             feedType,
-            "https://localhost", // TODO: Get from configuration
-            "/feeds");
+            _serverOptions.BaseUrl,
+            _serverOptions.FeedPath);
 
         // Generate ETag from content hash
         var etag = GenerateEtag(xmlContent);
@@ -100,7 +106,7 @@ public class CombinedFeedService : ICombinedFeedService
         {
             Id = "combined",
             Title = CombinedFeedTitle,
-            Url = "https://localhost", // TODO: Get from configuration
+            Url = "https://localhost",
             Description = CombinedFeedDescription,
             FeedType = FeedType.Audio,
             EpisodeCountConfig = MaxCombinedEpisodes,

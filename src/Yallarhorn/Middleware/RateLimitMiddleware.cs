@@ -45,7 +45,11 @@ public sealed class RateLimitMiddleware
         finally
         {
             // Add rate limit headers if not already present
-            AddRateLimitHeaders(context);
+            // Only add headers if response hasn't started (headers are read-only after response starts)
+            if (!context.Response.HasStarted)
+            {
+                AddRateLimitHeaders(context);
+            }
         }
     }
 
@@ -56,6 +60,12 @@ public sealed class RateLimitMiddleware
     private void AddRateLimitHeaders(HttpContext context)
     {
         var response = context.Response;
+
+        // Safety check: headers are read-only after response has started
+        if (response.HasStarted)
+        {
+            return;
+        }
 
         // Only add headers if not already present (might be added by ASP.NET Core RateLimiter)
         if (!response.Headers.ContainsKey("X-RateLimit-Limit"))

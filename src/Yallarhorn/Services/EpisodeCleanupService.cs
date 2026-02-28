@@ -43,6 +43,20 @@ public interface IFileService
     /// <param name="path">The full path to the file.</param>
     /// <returns>True if the file exists.</returns>
     bool FileExists(string path);
+
+    /// <summary>
+    /// Gets the file stream for reading.
+    /// </summary>
+    /// <param name="path">The full path to the file.</param>
+    /// <returns>The file stream, or null if not found.</returns>
+    Stream? GetFileStream(string path);
+
+    /// <summary>
+    /// Gets the file size in bytes.
+    /// </summary>
+    /// <param name="path">The full path to the file.</param>
+    /// <returns>The file size, or 0 if not found.</returns>
+    long GetFileSize(string path);
 }
 
 /// <summary>
@@ -63,6 +77,23 @@ public class FileService : IFileService
     public bool FileExists(string path)
     {
         return File.Exists(path);
+    }
+
+    /// <inheritdoc />
+    public Stream? GetFileStream(string path)
+    {
+        if (!File.Exists(path))
+        {
+            return null;
+        }
+        return File.OpenRead(path);
+    }
+
+    /// <inheritdoc />
+    public long GetFileSize(string path)
+    {
+        var info = new FileInfo(path);
+        return info.Exists ? info.Length : 0;
     }
 }
 

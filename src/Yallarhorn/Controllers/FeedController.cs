@@ -4,7 +4,10 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Yallarhorn.Configuration;
 using Yallarhorn.Data.Enums;
+using Yallarhorn.Data.Repositories;
 using Yallarhorn.Models;
 using Yallarhorn.Services;
 
@@ -18,6 +21,9 @@ public class FeedController : ControllerBase
     private readonly IFeedService _feedService;
     private readonly ICombinedFeedService _combinedFeedService;
     private readonly IFeedCache _feedCache;
+    private readonly IEpisodeRepository _episodeRepository;
+    private readonly IFileService _fileService;
+    private readonly YallarhornOptions _options;
     private readonly ILogger<FeedController> _logger;
 
     /// <summary>
@@ -73,16 +79,25 @@ public class FeedController : ControllerBase
     /// <param name="feedService">The feed service for per-channel feeds.</param>
     /// <param name="combinedFeedService">The combined feed service for aggregated feeds.</param>
     /// <param name="feedCache">The feed cache.</param>
+    /// <param name="episodeRepository">The episode repository.</param>
+    /// <param name="fileService">The file service.</param>
+    /// <param name="options">Yallarhorn configuration options.</param>
     /// <param name="logger">The logger.</param>
     public FeedController(
         IFeedService feedService,
         ICombinedFeedService combinedFeedService,
         IFeedCache feedCache,
+        IEpisodeRepository episodeRepository,
+        IFileService fileService,
+        IOptions<YallarhornOptions> options,
         ILogger<FeedController> logger)
     {
         _feedService = feedService;
         _combinedFeedService = combinedFeedService;
         _feedCache = feedCache;
+        _episodeRepository = episodeRepository;
+        _fileService = fileService;
+        _options = options.Value;
         _logger = logger;
     }
 
@@ -212,7 +227,7 @@ public class FeedController : ControllerBase
     [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetMedia(string channelId, string type, string filename)
+    public IActionResult GetMedia(string channelId, string type, string filename)
     {
         // Validate type
         if (!IsValidMediaType(type))
@@ -237,22 +252,32 @@ public class FeedController : ControllerBase
             return BadRequest();
         }
 
-        // TODO: Implement actual file serving with physical file storage
-        // This would involve:
-        // 1. Looking up the episode by video_id (from filename without extension)
-        // 2. Getting the physical file path from the episode record
-        // 3. Serving the file with proper range support for streaming
-        // 4. Handling conditional requests (If-None-Match, If-Range, etc.)
-        
-        // For now, return NotFound
-        // In a real implementation, this would serve the file:
-        // var filePath = await _mediaService.GetMediaPathAsync(channelId, type, filename);
-        // return PhysicalFile(filePath, mimeType);
+        // Construct file path: downloads/{channelId}/{type}/{filename}
+        // The database stores relative paths like "channelId/audio/filename.mp3"
+        var filePath = Path.Combine(_options.DownloadDir, channelId, type, filename);
 
-        _logger.LogDebug("Media request: channel={ChannelId}, type={Type}, file={Filename}", 
-            channelId, type, filename);
+        _logger.LogDebug("Media request: channel={ChannelId}, type={Type}, file={Filename}, fullPath={FilePath}", 
+            channelId, type, filename, filePath);
+
+        if (!_fileService.FileExists(filePath))
+        {
+            _logger.LogWarning("Media file not found: {FilePath}", filePath);
+            return NotFound();
+        }
+
+        var stream = _fileService.GetFileStream(filePath);
+        if (stream == null)
+        {
+            return NotFound();
+        }
+
+        _logger.LogDebug("Serving media file: {FilePath}", filePath);
         
-        return NotFound();
+        // Enable range requests for streaming
+        Response.Headers.AcceptRanges = "bytes";
+        Response.Headers.CacheControl = "public, max-age=31536000"; // 1 year for media files
+        
+        return File(stream, mimeType, enableRangeProcessing: true);
     }
 
     /// <summary>

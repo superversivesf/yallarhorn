@@ -2,6 +2,8 @@ namespace Yallarhorn.Services;
 
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.Extensions.Options;
+using Yallarhorn.Configuration;
 using Yallarhorn.Data.Entities;
 using Yallarhorn.Data.Enums;
 using Yallarhorn.Data.Repositories;
@@ -17,6 +19,7 @@ public class FeedService : IFeedService
     private readonly IEpisodeRepository _episodeRepository;
     private readonly IRssFeedBuilder _rssFeedBuilder;
     private readonly IAtomFeedBuilder _atomFeedBuilder;
+    private readonly ServerOptions _serverOptions;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="FeedService"/> class.
@@ -25,16 +28,19 @@ public class FeedService : IFeedService
     /// <param name="episodeRepository">Episode repository.</param>
     /// <param name="rssFeedBuilder">RSS feed builder.</param>
     /// <param name="atomFeedBuilder">Atom feed builder.</param>
+    /// <param name="serverOptions">Server configuration options.</param>
     public FeedService(
         IChannelRepository channelRepository,
         IEpisodeRepository episodeRepository,
         IRssFeedBuilder rssFeedBuilder,
-        IAtomFeedBuilder atomFeedBuilder)
+        IAtomFeedBuilder atomFeedBuilder,
+        IOptions<ServerOptions> serverOptions)
     {
         _channelRepository = channelRepository;
         _episodeRepository = episodeRepository;
         _rssFeedBuilder = rssFeedBuilder;
         _atomFeedBuilder = atomFeedBuilder;
+        _serverOptions = serverOptions.Value;
     }
 
     /// <inheritdoc />
@@ -67,8 +73,8 @@ public class FeedService : IFeedService
             channel,
             episodes,
             feedType,
-            "https://localhost", // TODO: Get from configuration
-            "/feeds");
+            _serverOptions.BaseUrl,
+            _serverOptions.FeedPath);
 
         // Generate ETag from content hash
         var etag = GenerateEtag(xmlContent);

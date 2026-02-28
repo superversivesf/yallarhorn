@@ -207,7 +207,7 @@ public class DownloadQueueServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task MarkInProgressAsync_ShouldThrowIfNotPending()
+    public async Task MarkInProgressAsync_ShouldThrowIfNotPendingOrRetrying()
     {
         var item = await _service.EnqueueAsync(_testEpisode.Id);
         await _service.MarkInProgressAsync(item.Id);
@@ -215,7 +215,28 @@ public class DownloadQueueServiceTests : IDisposable
         var act = () => _service.MarkInProgressAsync(item.Id);
 
         await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*not in Pending status*");
+            .WithMessage("*not in Pending or Retrying status*");
+    }
+
+    [Fact]
+    public async Task MarkInProgressAsync_ShouldTransitionFromRetryingToInProgress()
+    {
+        var item = await _service.EnqueueAsync(_testEpisode.Id);
+        await _service.MarkInProgressAsync(item.Id);
+        await _service.MarkFailedAsync(item.Id, "Test error");
+
+        // Now item is in Retrying status - verify we can transition to InProgress
+        var retryItem = await _queueRepository.GetByIdAsync(item.Id);
+        retryItem!.Status.Should().Be(QueueStatus.Retrying);
+
+        // Set NextRetryAt to past so it's ready for retry
+        retryItem.NextRetryAt = DateTimeOffset.UtcNow.AddMinutes(-1);
+        await _queueRepository.UpdateAsync(retryItem);
+
+        await _service.MarkInProgressAsync(item.Id);
+
+        var updated = await _queueRepository.GetByIdAsync(item.Id);
+        updated!.Status.Should().Be(QueueStatus.InProgress);
     }
 
     [Fact]

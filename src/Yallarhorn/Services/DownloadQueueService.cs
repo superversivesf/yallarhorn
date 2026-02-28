@@ -32,10 +32,11 @@ public interface IDownloadQueueService
 
     /// <summary>
     /// Marks a queue item as in progress.
+    /// Accepts both Pending and Retrying statuses.
     /// </summary>
     /// <param name="queueId">The queue item ID.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <exception cref="InvalidOperationException">Thrown if item not found or not in Pending status.</exception>
+    /// <exception cref="InvalidOperationException">Thrown if item not found or not in Pending/Retrying status.</exception>
     Task MarkInProgressAsync(string queueId, CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -167,10 +168,10 @@ public class DownloadQueueService : IDownloadQueueService
             throw new InvalidOperationException($"Queue item {queueId} not found");
         }
 
-        if (item.Status != QueueStatus.Pending)
+        if (item.Status != QueueStatus.Pending && item.Status != QueueStatus.Retrying)
         {
             throw new InvalidOperationException(
-                $"Queue item {queueId} is not in Pending status (current: {item.Status})");
+                $"Queue item {queueId} is not in Pending or Retrying status (current: {item.Status})");
         }
 
         item.Status = QueueStatus.InProgress;
