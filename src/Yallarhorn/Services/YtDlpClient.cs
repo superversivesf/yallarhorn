@@ -84,15 +84,30 @@ public class YtDlpClient : IYtDlpClient
                 result.Error);
         }
 
-        // yt-dlp outputs JSON to stderr with --print-json
-        var output = result.Error;
+        // yt-dlp outputs JSON to stdout (as of 2024.04.09)
+        // But some versions may output to stderr, so check both
+        var output = result.Output;
         if (string.IsNullOrEmpty(output))
         {
-            output = result.Output;
+            output = result.Error;
+            _logger.LogDebug("JSON output was on stderr, length: {Length}", output?.Length ?? 0);
+        }
+        else
+        {
+            _logger.LogDebug("JSON output was on stdout, length: {Length}", output.Length);
         }
 
         var videos = new List<YtDlpMetadata>();
+        
+        if (string.IsNullOrEmpty(output))
+        {
+            _logger.LogWarning("No output from yt-dlp for channel {ChannelUrl}. ExitCode: {ExitCode}", channelUrl, result.ExitCode);
+            return videos.AsReadOnly();
+        }
+
         var jsonLines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+
+        _logger.LogDebug("Parsing {LineCount} lines of yt-dlp output", jsonLines.Length);
 
         foreach (var line in jsonLines)
         {

@@ -119,6 +119,11 @@ public class ChannelRefreshService : IChannelRefreshService
 
             _logger?.LogInformation("Found {Count} videos for channel {ChannelId}", videoList.Count, channel.Id);
 
+            if (videoList.Count == 0)
+            {
+                _logger?.LogWarning("No videos returned from yt-dlp for channel {ChannelId} at {Url}", channel.Id, channel.Url);
+            }
+
             // Step 3: Filter by rolling window (top N by published_at)
             var videosToProcess = videoList
                 .OrderByDescending(v => v.Timestamp ?? 0) // Sort by published_at descending, null timestamps go last
@@ -189,12 +194,12 @@ public class ChannelRefreshService : IChannelRefreshService
         }
         catch (YtDlpException ex)
         {
-            _logger?.LogError(ex, "Failed to fetch videos for channel {ChannelId}", channel.Id);
+            _logger?.LogError(ex, "Failed to fetch videos for channel {ChannelId}: {Message}", channel.Id, ex.Message);
             throw;
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "Unexpected error refreshing channel {ChannelId}", channel.Id);
+            _logger?.LogError(ex, "Unexpected error refreshing channel {ChannelId}: {Message}", channel.Id, ex.Message);
             throw;
         }
     }
