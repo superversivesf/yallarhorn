@@ -283,7 +283,8 @@ public class DownloadPipeline : IDownloadPipeline
         }
         catch (YtDlpException ex)
         {
-            _logger.LogError(ex, "Download failed for episode {EpisodeId}", episode.Id);
+            _logger.LogError(ex, "Download failed for episode {EpisodeId}: {Message}", episode.Id, ex.Message);
+            _logger.LogError("yt-dlp stderr: {Error}", ex.ErrorOutput ?? "no stderr");
 
             return await CreateFailedResultWithUpdateAsync(
                 episode,

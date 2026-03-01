@@ -162,7 +162,7 @@ public class YtDlpClient : IYtDlpClient
             _logger.LogError("Failed to download video from {Url}. Exit code: {ExitCode}, Error: {Error}",
                 url, result.ExitCode, result.Error);
             throw new YtDlpException(
-                "Failed to download video",
+                $"Failed to download video (ExitCode: {result.ExitCode}): {result.Error}",
                 result.ExitCode,
                 result.Error);
         }
