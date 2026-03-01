@@ -51,10 +51,13 @@ auth:
 # At least one channel is required for the application to start
 # Add your YouTube channels here
 channels:
-  # Example channel configuration (disabled by default for development)
-  - name: "Example Channel (Disabled)"
-    url: "https://www.youtube.com/@example"
-    episodeCount: 50
-    enabled: false
-    feedType: "audio"
-    tags: []
+  - name: "AI Species"
+    url: "https://www.youtube.com/@AISpecies"
+    episodeCount: 15
+    enabled: true
+    feedType: "both"
+  - name: "AI News & Strategy"
+    url: "https://www.youtube.com/@NateBJones"
+    episodeCount: 10
+    enabled: true
+    feedType: "both"
