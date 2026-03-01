@@ -11,6 +11,19 @@ using Yallarhorn.Data.Enums;
 public class AtomFeedBuilder : IAtomFeedBuilder
 {
     private const string AtomNamespace = "http://www.w3.org/2005/Atom";
+    private const string AppName = "Yallarhorn";
+    private const string AppUri = "https://github.com/jason/yallarhorn";
+
+    private readonly IVersionService _versionService;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AtomFeedBuilder"/> class.
+    /// </summary>
+    /// <param name="versionService">The version service.</param>
+    public AtomFeedBuilder(IVersionService versionService)
+    {
+        _versionService = versionService;
+    }
 
     /// <summary>
     /// MIME type mappings for common audio and video formats.
@@ -89,6 +102,9 @@ public class AtomFeedBuilder : IAtomFeedBuilder
         writer.WriteStartElement("author", AtomNamespace);
         writer.WriteElementString("name", AtomNamespace, channel.Title);
         writer.WriteEndElement();
+
+        // Generator element with app name, version, and uri
+        WriteGeneratorElement(writer);
 
         // Write entries (episodes)
         var filteredEpisodes = GetFilteredEpisodes(episodes, feedType)
@@ -230,6 +246,19 @@ public class AtomFeedBuilder : IAtomFeedBuilder
     {
         // Convert to UTC and format as ISO 8601 with Z suffix
         return timestamp.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ");
+    }
+
+    /// <summary>
+    /// Writes the generator element with app name, version, and uri.
+    /// </summary>
+    private void WriteGeneratorElement(XmlWriter writer)
+    {
+        var version = _versionService.GetVersion();
+        writer.WriteStartElement("generator", AtomNamespace);
+        writer.WriteAttributeString("version", version);
+        writer.WriteAttributeString("uri", AppUri);
+        writer.WriteString(AppName);
+        writer.WriteEndElement();
     }
 
     /// <summary>

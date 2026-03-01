@@ -22,9 +22,9 @@ public class StatusController : ControllerBase
     private readonly IDownloadCoordinator _downloadCoordinator;
     private readonly IPipelineMetrics _pipelineMetrics;
     private readonly IStorageService _storageService;
+    private readonly IVersionService _versionService;
     private readonly ILogger<StatusController> _logger;
     private static readonly DateTimeOffset StartTime = DateTimeOffset.UtcNow;
-    private static readonly string Version = GetAssemblyVersion();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="StatusController"/> class.
@@ -33,18 +33,21 @@ public class StatusController : ControllerBase
     /// <param name="downloadCoordinator">The download coordinator.</param>
     /// <param name="pipelineMetrics">The pipeline metrics service.</param>
     /// <param name="storageService">The storage service.</param>
+    /// <param name="versionService">The version service.</param>
     /// <param name="logger">The logger.</param>
     public StatusController(
         IDownloadQueueRepository queueRepository,
         IDownloadCoordinator downloadCoordinator,
         IPipelineMetrics pipelineMetrics,
         IStorageService storageService,
+        IVersionService versionService,
         ILogger<StatusController> logger)
     {
         _queueRepository = queueRepository;
         _downloadCoordinator = downloadCoordinator;
         _pipelineMetrics = pipelineMetrics;
         _storageService = storageService;
+        _versionService = versionService;
         _logger = logger;
     }
 
@@ -85,7 +88,7 @@ public class StatusController : ControllerBase
 
         var status = new SystemStatus
         {
-            Version = Version,
+            Version = _versionService.GetVersion(),
             UptimeSeconds = (long)uptime.TotalSeconds,
             Storage = new StorageInfo
             {
@@ -133,6 +136,7 @@ public class StatusController : ControllerBase
         var status = new HealthStatus
         {
             Status = "healthy",
+            Version = _versionService.GetVersion(),
             Timestamp = DateTimeOffset.UtcNow
         };
 
@@ -207,18 +211,6 @@ public class StatusController : ControllerBase
         };
 
         return Ok(new ApiResponse<QueueStatusResponse> { Data = response });
-    }
-
-    /// <summary>
-    /// Gets the assembly version.
-    /// </summary>
-    private static string GetAssemblyVersion()
-    {
-        var assembly = Assembly.GetExecutingAssembly();
-        var version = assembly.GetName().Version;
-        return version != null
-            ? $"{version.Major}.{version.Minor}.{version.Build}"
-            : "1.0.0";
     }
 }
 

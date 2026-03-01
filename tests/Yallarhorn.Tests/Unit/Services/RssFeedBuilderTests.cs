@@ -2,6 +2,7 @@ namespace Yallarhorn.Tests.Unit.Services;
 
 using System.Xml.Linq;
 using FluentAssertions;
+using Moq;
 using Xunit;
 using Yallarhorn.Data.Entities;
 using Yallarhorn.Data.Enums;
@@ -13,10 +14,13 @@ public class RssFeedBuilderTests
     private const string BaseUrl = "http://localhost:8080";
     private const string FeedPath = "/feeds";
     private readonly IRssFeedBuilder _builder;
+    private readonly Mock<IVersionService> _versionServiceMock;
 
     public RssFeedBuilderTests()
     {
-        _builder = new RssFeedBuilder();
+        _versionServiceMock = new Mock<IVersionService>();
+        _versionServiceMock.Setup(v => v.GetVersion()).Returns("1.0.0-rc1");
+        _builder = new RssFeedBuilder(_versionServiceMock.Object);
     }
 
     #region Basic Feed Structure Tests
@@ -889,6 +893,39 @@ public class RssFeedBuilderTests
         enclosure?.Attribute("url")?.Value.Should().Be("http://localhost:8080/feeds/tech-talk/audio/abc123.mp3");
         enclosure?.Attribute("length")?.Value.Should().Be("52428800");
         enclosure?.Attribute("type")?.Value.Should().Be("audio/mpeg");
+    }
+
+    #endregion
+
+    #region Generator Element Tests
+
+    [Fact]
+    public void BuildRssFeed_ShouldIncludeGeneratorElement()
+    {
+        // Arrange
+        var channel = CreateTestChannel();
+        var episodes = new List<Episode>();
+
+        // Act
+        var result = _builder.BuildRssFeed(channel, episodes, FeedType.Audio, BaseUrl, FeedPath);
+
+        // Assert
+        result.Should().Contain("<generator>Yallarhorn/1.0.0-rc1</generator>");
+    }
+
+    [Fact]
+    public void BuildRssFeed_WithDifferentVersion_ShouldIncludeCorrectVersionInGenerator()
+    {
+        // Arrange
+        _versionServiceMock.Setup(v => v.GetVersion()).Returns("2.0.0");
+        var channel = CreateTestChannel();
+        var episodes = new List<Episode>();
+
+        // Act
+        var result = _builder.BuildRssFeed(channel, episodes, FeedType.Audio, BaseUrl, FeedPath);
+
+        // Assert
+        result.Should().Contain("<generator>Yallarhorn/2.0.0</generator>");
     }
 
     #endregion

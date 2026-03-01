@@ -151,6 +151,9 @@ public class ApiIntegrationTests : IAsyncLifetime
                             sp.GetRequiredService<IOptions<YallarhornOptions>>(),
                             sp.GetService<ILogger<EpisodeCleanupService>>()));
 
+                        // Version service
+                        services.AddSingleton<IVersionService, VersionService>();
+
                         // Feed services
                         services.AddSingleton<IRssFeedBuilder, RssFeedBuilder>();
                         services.AddSingleton<IAtomFeedBuilder, AtomFeedBuilder>();

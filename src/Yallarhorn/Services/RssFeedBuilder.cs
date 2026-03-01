@@ -13,6 +13,18 @@ public class RssFeedBuilder : IRssFeedBuilder
 {
     private const string ITunesNamespace = "http://www.itunes.com/dtds/podcast-1.0.dtd";
     private const string ContentNamespace = "http://purl.org/rss/1.0/modules/content/";
+    private const string AppName = "Yallarhorn";
+
+    private readonly IVersionService _versionService;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="RssFeedBuilder"/> class.
+    /// </summary>
+    /// <param name="versionService">The version service.</param>
+    public RssFeedBuilder(IVersionService versionService)
+    {
+        _versionService = versionService;
+    }
 
     /// <summary>
     /// MIME type mappings for common audio and video formats.
@@ -76,6 +88,9 @@ public class RssFeedBuilder : IRssFeedBuilder
 
         // Optional channel elements
         writer.WriteElementString("language", "en-us");
+
+        // Generator element with app version
+        WriteGeneratorElement(writer);
 
         // iTunes channel elements
         WriteITunesElement(writer, "type", "episodic");
@@ -278,5 +293,14 @@ public class RssFeedBuilder : IRssFeedBuilder
     private static string SanitizeEmail(string title)
     {
         return new string(title.ToLowerInvariant().Where(c => char.IsLetterOrDigit(c)).ToArray());
+    }
+
+    /// <summary>
+    /// Writes the generator element with app name and version.
+    /// </summary>
+    private void WriteGeneratorElement(XmlWriter writer)
+    {
+        var version = _versionService.GetVersion();
+        writer.WriteElementString("generator", $"{AppName}/{version}");
     }
 }

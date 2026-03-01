@@ -2,6 +2,7 @@ namespace Yallarhorn.Tests.Unit.Services;
 
 using System.Xml.Linq;
 using FluentAssertions;
+using Moq;
 using Xunit;
 using Yallarhorn.Data.Entities;
 using Yallarhorn.Data.Enums;
@@ -12,10 +13,13 @@ public class AtomFeedBuilderTests
     private const string BaseUrl = "http://localhost:8080";
     private const string FeedPath = "/feeds";
     private readonly IAtomFeedBuilder _builder;
+    private readonly Mock<IVersionService> _versionServiceMock;
 
     public AtomFeedBuilderTests()
     {
-        _builder = new AtomFeedBuilder();
+        _versionServiceMock = new Mock<IVersionService>();
+        _versionServiceMock.Setup(v => v.GetVersion()).Returns("1.0.0-rc1");
+        _builder = new AtomFeedBuilder(_versionServiceMock.Object);
     }
 
     #region Basic Feed Structure Tests
@@ -680,6 +684,48 @@ public class AtomFeedBuilderTests
         enclosureLink?.Attribute("href")?.Value.Should().Be("http://localhost:8080/feeds/tech-talk/audio/abc123.mp3");
         enclosureLink?.Attribute("length")?.Value.Should().Be("52428800");
         enclosureLink?.Attribute("type")?.Value.Should().Be("audio/mpeg");
+    }
+
+    #endregion
+
+    #region Generator Element Tests
+
+    [Fact]
+    public void BuildAtomFeed_ShouldIncludeGeneratorElement()
+    {
+        // Arrange
+        var channel = CreateTestChannel();
+        var episodes = new List<Episode>();
+
+        // Act
+        var result = _builder.BuildAtomFeed(channel, episodes, FeedType.Audio, BaseUrl, FeedPath);
+
+        // Assert
+        var doc = XDocument.Parse(result);
+        var ns = XNamespace.Get("http://www.w3.org/2005/Atom");
+        var generatorElement = doc.Root?.Element(ns + "generator");
+        generatorElement.Should().NotBeNull();
+        generatorElement?.Value.Should().Be("Yallarhorn");
+        generatorElement?.Attribute("version")?.Value.Should().Be("1.0.0-rc1");
+        generatorElement?.Attribute("uri")?.Value.Should().Be("https://github.com/jason/yallarhorn");
+    }
+
+    [Fact]
+    public void BuildAtomFeed_WithDifferentVersion_ShouldIncludeCorrectVersionInGenerator()
+    {
+        // Arrange
+        _versionServiceMock.Setup(v => v.GetVersion()).Returns("2.0.0");
+        var channel = CreateTestChannel();
+        var episodes = new List<Episode>();
+
+        // Act
+        var result = _builder.BuildAtomFeed(channel, episodes, FeedType.Audio, BaseUrl, FeedPath);
+
+        // Assert
+        var doc = XDocument.Parse(result);
+        var ns = XNamespace.Get("http://www.w3.org/2005/Atom");
+        var generatorElement = doc.Root?.Element(ns + "generator");
+        generatorElement?.Attribute("version")?.Value.Should().Be("2.0.0");
     }
 
     #endregion

@@ -14,6 +14,12 @@ public class HealthStatus
     public required string Status { get; set; }
 
     /// <summary>
+    /// Gets or sets the version of the application.
+    /// </summary>
+    [JsonPropertyName("version")]
+    public required string Version { get; set; }
+
+    /// <summary>
     /// Gets or sets the timestamp of the health check.
     /// </summary>
     [JsonPropertyName("timestamp")]

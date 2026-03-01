@@ -95,6 +95,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IFileService, FileService>();
 
         // Phase 4 Services
+        services.AddSingleton<IVersionService, VersionService>();
         services.AddSingleton<IRssFeedBuilder, RssFeedBuilder>();
         services.AddSingleton<IAtomFeedBuilder, AtomFeedBuilder>();
         services.AddScoped<IFeedService, FeedService>();

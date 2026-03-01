@@ -4,6 +4,7 @@ using Yallarhorn.Configuration;
 using Yallarhorn.Configuration.Yaml;
 using Yallarhorn.Extensions;
 using Yallarhorn.Logging;
+using Yallarhorn.Services;
 
 // Parse command line arguments first
 var argsToProcess = args;
@@ -143,6 +144,15 @@ app.MapControllers();
 // Sample endpoint
 app.MapGet("/health/simple", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }))
    .WithName("SimpleHealth");
+
+// Version endpoint
+app.MapGet("/version", (IVersionService versionService) => Results.Ok(new 
+{ 
+    version = versionService.GetVersion(), 
+    framework = "net10.0",
+    timestamp = DateTime.UtcNow 
+}))
+   .WithName("Version");
 
 app.MapGet("/", () => Results.Redirect("/scalar/v1"))
    .WithName("Home");

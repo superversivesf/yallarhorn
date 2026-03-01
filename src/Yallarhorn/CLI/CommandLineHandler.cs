@@ -1,6 +1,7 @@
 namespace Yallarhorn.CLI;
 
 using System.CommandLine;
+using System.Reflection;
 using Microsoft.Extensions.Logging;
 
 /// <summary>
@@ -35,6 +36,25 @@ public class CommandLineHandler
     {
         var rootCommand = new RootCommand("Yallarhorn - YouTube podcast feed generator");
         rootCommand.Options.Add(_configOption);
+
+        // Add --version option
+        var versionOption = new Option<bool>("--version", "-v")
+        {
+            Description = "Display version information"
+        };
+        rootCommand.Options.Add(versionOption);
+
+        // Set action for root command to handle --version
+        rootCommand.SetAction(parseResult =>
+        {
+            if (parseResult.GetValue(versionOption))
+            {
+                var version = GetVersion();
+                Console.WriteLine($"Yallarhorn version {version}");
+                return 0;
+            }
+            return 0;
+        });
 
         // Add config command
         var configCommand = new Command("config", "Configuration management commands");
@@ -118,7 +138,7 @@ public class CommandLineHandler
         }
 
         // Handle version
-        if (args.Contains("--version"))
+        if (args.Contains("--version") || args.Contains("-v"))
         {
             return new CommandLineOptions { VersionRequested = true };
         }
@@ -187,6 +207,13 @@ public class CommandLineHandler
     /// <returns>Exit code.</returns>
     public async Task<int> ExecuteAsync(string[] args)
     {
+        // Handle --version specially to provide formatted output
+        if (args.Contains("--version") || args.Contains("-v"))
+        {
+            Console.WriteLine($"Yallarhorn version {GetVersion()}");
+            return await Task.FromResult(0);
+        }
+        
         _logger.LogInformation("Executing CLI command");
         return await Task.FromResult(_rootCommand.Parse(args).Invoke());
     }
@@ -252,5 +279,30 @@ public class CommandLineHandler
         }
 
         return await command.ExecuteAsync(args, cancellationToken);
+    }
+
+    /// <summary>
+    /// Gets the version string from the assembly informational version attribute.
+    /// </summary>
+    private static string GetVersion()
+    {
+        var assembly = Assembly.GetExecutingAssembly();
+        var informationalVersion = assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+            ?.InformationalVersion;
+        
+        if (!string.IsNullOrEmpty(informationalVersion))
+        {
+            // Strip git commit hash if present (e.g., "1.0.0-rc1+abc123" -> "1.0.0-rc1")
+            var plusIndex = informationalVersion.IndexOf('+');
+            if (plusIndex >= 0)
+            {
+                informationalVersion = informationalVersion.Substring(0, plusIndex);
+            }
+            return informationalVersion;
+        }
+        
+        var version = assembly.GetName().Version;
+        return version?.ToString() ?? "1.0.0";
     }
 }

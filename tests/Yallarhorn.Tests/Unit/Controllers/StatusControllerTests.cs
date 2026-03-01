@@ -20,6 +20,7 @@ public class StatusControllerTests : IDisposable
     private readonly Mock<IDownloadCoordinator> _downloadCoordinatorMock;
     private readonly Mock<IPipelineMetrics> _pipelineMetricsMock;
     private readonly Mock<IStorageService> _storageServiceMock;
+    private readonly Mock<IVersionService> _versionServiceMock;
     private readonly Mock<ILogger<StatusController>> _loggerMock;
     private readonly StatusController _controller;
 
@@ -29,13 +30,17 @@ public class StatusControllerTests : IDisposable
         _downloadCoordinatorMock = new Mock<IDownloadCoordinator>();
         _pipelineMetricsMock = new Mock<IPipelineMetrics>();
         _storageServiceMock = new Mock<IStorageService>();
+        _versionServiceMock = new Mock<IVersionService>();
         _loggerMock = new Mock<ILogger<StatusController>>();
+
+        _versionServiceMock.Setup(v => v.GetVersion()).Returns("1.0.0-rc1");
 
         _controller = new StatusController(
             _queueRepositoryMock.Object,
             _downloadCoordinatorMock.Object,
             _pipelineMetricsMock.Object,
             _storageServiceMock.Object,
+            _versionServiceMock.Object,
             _loggerMock.Object);
 
         // Set up HttpContext with Request

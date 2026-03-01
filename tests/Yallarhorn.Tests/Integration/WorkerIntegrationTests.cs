@@ -124,6 +124,9 @@ public class WorkerIntegrationTests : IAsyncLifetime
             sp.GetRequiredService<IOptions<YallarhornOptions>>(),
             sp.GetService<ILogger<EpisodeCleanupService>>()));
 
+        // Version service
+        services.AddSingleton<IVersionService, VersionService>();
+
         _serviceProvider = services.BuildServiceProvider();
 
         // Initialize database
