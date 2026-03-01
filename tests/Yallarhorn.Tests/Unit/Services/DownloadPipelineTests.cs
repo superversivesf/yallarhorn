@@ -2,6 +2,7 @@ namespace Yallarhorn.Tests.Unit.Services;
 
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 using Yallarhorn.Configuration;
@@ -44,6 +45,15 @@ public class DownloadPipelineTests
             .Returns(async (Func<CancellationToken, Task<PipelineResult>> operation, CancellationToken ct) => await operation(ct));
     }
 
+    private IOptions<YallarhornOptions> CreateOptions()
+    {
+        return Options.Create(new YallarhornOptions
+        {
+            DownloadDir = _downloadDirectory,
+            TempDir = _tempDirectory
+        });
+    }
+
     #region Constructor Tests
 
     [Fact]
@@ -57,8 +67,7 @@ public class DownloadPipelineTests
             _episodeRepositoryMock.Object,
             _channelRepositoryMock.Object,
             _downloadCoordinatorMock.Object,
-            _downloadDirectory,
-            _tempDirectory);
+            CreateOptions());
 
         // Assert
         pipeline.Should().NotBeNull();
@@ -75,8 +84,7 @@ public class DownloadPipelineTests
             _episodeRepositoryMock.Object,
             _channelRepositoryMock.Object,
             _downloadCoordinatorMock.Object,
-            _downloadDirectory,
-            _tempDirectory);
+            CreateOptions());
 
         // Assert
         pipeline.Should().BeAssignableTo<IDownloadPipeline>();
@@ -750,8 +758,7 @@ public class DownloadPipelineTests
             _episodeRepositoryMock.Object,
             _channelRepositoryMock.Object,
             _downloadCoordinatorMock.Object,
-            _downloadDirectory,
-            _tempDirectory);
+            CreateOptions());
     }
 
     private static (Episode episode, Channel channel) CreateEpisodeAndChannel(

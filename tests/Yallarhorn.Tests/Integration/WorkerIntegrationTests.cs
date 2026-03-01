@@ -94,12 +94,19 @@ public class WorkerIntegrationTests : IAsyncLifetime
             Threads = 4
         });
 
+        // Yallarhorn options for download/temp directories
+        services.AddSingleton(Options.Create(new YallarhornOptions
+        {
+            DownloadDir = Path.GetTempPath(),
+            TempDir = Path.GetTempPath()
+        }));
+
         // Real services
         services.AddScoped<ITranscodeService>(sp => new TranscodeService(
             sp.GetRequiredService<ILogger<TranscodeService>>(),
             sp.GetRequiredService<IFfmpegClient>(),
             sp.GetRequiredService<TranscodeOptions>(),
-            Path.GetTempPath())); // Use temp directory for downloads
+            sp.GetRequiredService<IOptions<YallarhornOptions>>()));
         services.AddScoped<IChannelRefreshService, ChannelRefreshService>();
         services.AddScoped<IDownloadQueueService, DownloadQueueService>();
         services.AddScoped<IDownloadPipeline>(sp => new DownloadPipeline(
@@ -109,13 +116,12 @@ public class WorkerIntegrationTests : IAsyncLifetime
             sp.GetRequiredService<IEpisodeRepository>(),
             sp.GetRequiredService<IChannelRepository>(),
             sp.GetRequiredService<IDownloadCoordinator>(),
-            Path.GetTempPath(), // downloadDirectory
-            Path.GetTempPath())); // tempDirectory
+            sp.GetRequiredService<IOptions<YallarhornOptions>>()));
         services.AddScoped<IEpisodeCleanupService>(sp => new EpisodeCleanupService(
             sp.GetRequiredService<IEpisodeRepository>(),
             sp.GetRequiredService<IChannelRepository>(),
             sp.GetRequiredService<IFileService>(),
-            Path.GetTempPath(),
+            sp.GetRequiredService<IOptions<YallarhornOptions>>(),
             sp.GetService<ILogger<EpisodeCleanupService>>()));
 
         _serviceProvider = services.BuildServiceProvider();

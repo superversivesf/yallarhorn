@@ -14,6 +14,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 using Yallarhorn.Authentication;
@@ -120,12 +121,19 @@ public class ApiIntegrationTests : IAsyncLifetime
                             Threads = 4
                         });
 
+                        // Yallarhorn options for download/temp directories
+                        services.AddSingleton(Options.Create(new YallarhornOptions
+                        {
+                            DownloadDir = Path.GetTempPath(),
+                            TempDir = Path.GetTempPath()
+                        }));
+
                         // Services
                         services.AddScoped<ITranscodeService>(sp => new TranscodeService(
                             sp.GetRequiredService<ILogger<TranscodeService>>(),
                             sp.GetRequiredService<IFfmpegClient>(),
                             sp.GetRequiredService<TranscodeOptions>(),
-                            Path.GetTempPath()));
+                            sp.GetRequiredService<IOptions<YallarhornOptions>>()));
                         services.AddScoped<IChannelRefreshService, ChannelRefreshService>();
                         services.AddScoped<IDownloadQueueService, DownloadQueueService>();
                         services.AddScoped<IDownloadPipeline>(sp => new DownloadPipeline(
@@ -135,13 +143,12 @@ public class ApiIntegrationTests : IAsyncLifetime
                             sp.GetRequiredService<IEpisodeRepository>(),
                             sp.GetRequiredService<IChannelRepository>(),
                             sp.GetRequiredService<IDownloadCoordinator>(),
-                            Path.GetTempPath(),
-                            Path.GetTempPath()));
+                            sp.GetRequiredService<IOptions<YallarhornOptions>>()));
                         services.AddScoped<IEpisodeCleanupService>(sp => new EpisodeCleanupService(
                             sp.GetRequiredService<IEpisodeRepository>(),
                             sp.GetRequiredService<IChannelRepository>(),
                             sp.GetRequiredService<IFileService>(),
-                            Path.GetTempPath(),
+                            sp.GetRequiredService<IOptions<YallarhornOptions>>(),
                             sp.GetService<ILogger<EpisodeCleanupService>>()));
 
                         // Feed services

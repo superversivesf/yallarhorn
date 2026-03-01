@@ -1,6 +1,8 @@
 namespace Yallarhorn.Services;
 
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Yallarhorn.Configuration;
 using Yallarhorn.Data.Entities;
 using Yallarhorn.Data.Enums;
 using Yallarhorn.Data.Repositories;
@@ -137,19 +139,19 @@ public class EpisodeCleanupService : IEpisodeCleanupService
     /// <param name="episodeRepository">The episode repository.</param>
     /// <param name="channelRepository">The channel repository.</param>
     /// <param name="fileService">The file service.</param>
-    /// <param name="downloadDir">The download directory path.</param>
+    /// <param name="yallarhornOptions">Yallarhorn configuration options.</param>
     /// <param name="logger">Optional logger.</param>
     public EpisodeCleanupService(
         IEpisodeRepository episodeRepository,
         IChannelRepository channelRepository,
         IFileService fileService,
-        string downloadDir,
+        IOptions<YallarhornOptions> yallarhornOptions,
         ILogger<EpisodeCleanupService>? logger = null)
     {
         _episodeRepository = episodeRepository;
         _channelRepository = channelRepository;
         _fileService = fileService;
-        _downloadDir = downloadDir;
+        _downloadDir = yallarhornOptions?.Value?.DownloadDir ?? throw new ArgumentNullException(nameof(yallarhornOptions));
         _logger = logger;
     }
 

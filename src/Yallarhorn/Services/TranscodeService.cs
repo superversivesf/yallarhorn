@@ -1,6 +1,7 @@
 namespace Yallarhorn.Services;
 
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Yallarhorn.Configuration;
 using Yallarhorn.Data.Entities;
 using Yallarhorn.Data.Enums;
@@ -81,17 +82,17 @@ public class TranscodeService : ITranscodeService
     /// <param name="logger">Logger instance.</param>
     /// <param name="ffmpegClient">FFmpeg client for transcoding operations.</param>
     /// <param name="options">Transcode configuration options.</param>
-    /// <param name="downloadDirectory">Base directory for downloaded files.</param>
+    /// <param name="yallarhornOptions">Yallarhorn configuration options.</param>
     public TranscodeService(
         ILogger<TranscodeService> logger,
         IFfmpegClient ffmpegClient,
         TranscodeOptions options,
-        string downloadDirectory)
+        IOptions<YallarhornOptions> yallarhornOptions)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _ffmpegClient = ffmpegClient ?? throw new ArgumentNullException(nameof(ffmpegClient));
         _options = options ?? throw new ArgumentNullException(nameof(options));
-        _downloadDirectory = downloadDirectory ?? throw new ArgumentNullException(nameof(downloadDirectory));
+        _downloadDirectory = yallarhornOptions?.Value?.DownloadDir ?? throw new ArgumentNullException(nameof(yallarhornOptions));
     }
 
     /// <inheritdoc/>

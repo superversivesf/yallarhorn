@@ -2,8 +2,10 @@ namespace Yallarhorn.Tests.Unit.Services;
 
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
+using Yallarhorn.Configuration;
 using Yallarhorn.Data;
 using Yallarhorn.Data.Entities;
 using Yallarhorn.Data.Enums;
@@ -34,11 +36,17 @@ public class EpisodeCleanupServiceTests : IDisposable
         _fileServiceMock = new Mock<IFileService>();
         _testDownloadDir = Path.Combine(Path.GetTempPath(), $"yallarhorn_downloads_{Guid.NewGuid()}");
 
+        var yallarhornOptions = Options.Create(new YallarhornOptions
+        {
+            DownloadDir = _testDownloadDir,
+            TempDir = Path.Combine(Path.GetTempPath(), $"yallarhorn_temp_{Guid.NewGuid()}")
+        });
+
         _service = new EpisodeCleanupService(
             _episodeRepository,
             _channelRepository,
             _fileServiceMock.Object,
-            _testDownloadDir);
+            yallarhornOptions);
 
         _testChannel = new Channel
         {

@@ -65,11 +65,6 @@ public static class ServiceCollectionExtensions
             return options;
         });
 
-        // Register download and temp directories from configuration
-        var yallarhornOptions = configuration.Get<YallarhornOptions>() ?? new YallarhornOptions();
-        services.AddSingleton(sp => yallarhornOptions.DownloadDir);
-        services.AddSingleton(sp => yallarhornOptions.TempDir);
-
         // Add memory cache for feed caching
         services.AddMemoryCache();
 

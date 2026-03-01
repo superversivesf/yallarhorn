@@ -2,8 +2,10 @@ namespace Yallarhorn.Tests.Unit.Services;
 
 using System.Xml.Linq;
 using FluentAssertions;
+using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
+using Yallarhorn.Configuration;
 using Yallarhorn.Data.Entities;
 using Yallarhorn.Data.Enums;
 using Yallarhorn.Data.Repositories;
@@ -24,10 +26,17 @@ public class CombinedFeedServiceTests
         _channelRepositoryMock = new Mock<IChannelRepository>();
         _episodeRepositoryMock = new Mock<IEpisodeRepository>();
         _rssFeedBuilderMock = new Mock<IRssFeedBuilder>();
+
+        var serverOptions = Options.Create(new ServerOptions
+        {
+            BaseUrl = BaseUrl
+        });
+
         _service = new CombinedFeedService(
             _channelRepositoryMock.Object,
             _episodeRepositoryMock.Object,
-            _rssFeedBuilderMock.Object);
+            _rssFeedBuilderMock.Object,
+            serverOptions);
     }
 
     #region Interface Tests

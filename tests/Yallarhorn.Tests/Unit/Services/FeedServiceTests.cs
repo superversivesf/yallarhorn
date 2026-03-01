@@ -2,8 +2,10 @@ namespace Yallarhorn.Tests.Unit.Services;
 
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
+using Yallarhorn.Configuration;
 using Yallarhorn.Data;
 using Yallarhorn.Data.Entities;
 using Yallarhorn.Data.Enums;
@@ -36,11 +38,17 @@ public class FeedServiceTests : IDisposable
         _rssFeedBuilderMock = new Mock<IRssFeedBuilder>();
         _atomFeedBuilderMock = new Mock<IAtomFeedBuilder>();
 
+        var serverOptions = Options.Create(new ServerOptions
+        {
+            BaseUrl = "http://localhost:8080"
+        });
+
         _service = new FeedService(
             _channelRepository,
             _episodeRepository,
             _rssFeedBuilderMock.Object,
-            _atomFeedBuilderMock.Object);
+            _atomFeedBuilderMock.Object,
+            serverOptions);
 
         _testChannel = new Channel
         {

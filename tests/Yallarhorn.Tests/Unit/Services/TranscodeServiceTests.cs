@@ -2,6 +2,7 @@ namespace Yallarhorn.Tests.Unit.Services;
 
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 using Yallarhorn.Configuration;
@@ -35,6 +36,15 @@ public class TranscodeServiceTests
         _defaultDownloadDir = Path.Combine(Path.GetTempPath(), "yallarhorn_test");
     }
 
+    private IOptions<YallarhornOptions> CreateOptions(string? downloadDir = null)
+    {
+        return Options.Create(new YallarhornOptions
+        {
+            DownloadDir = downloadDir ?? _defaultDownloadDir,
+            TempDir = Path.Combine(Path.GetTempPath(), "yallarhorn_temp")
+        });
+    }
+
     #region Constructor Tests
 
     [Fact]
@@ -45,7 +55,7 @@ public class TranscodeServiceTests
             _loggerMock.Object,
             _ffmpegClientMock.Object,
             _defaultOptions,
-            _defaultDownloadDir);
+            CreateOptions());
 
         // Assert
         service.Should().NotBeNull();
@@ -59,7 +69,7 @@ public class TranscodeServiceTests
             _loggerMock.Object,
             _ffmpegClientMock.Object,
             _defaultOptions,
-            _defaultDownloadDir);
+            CreateOptions());
 
         // Assert
         service.Should().BeAssignableTo<ITranscodeService>();
@@ -77,7 +87,7 @@ public class TranscodeServiceTests
             _loggerMock.Object,
             _ffmpegClientMock.Object,
             _defaultOptions,
-            _defaultDownloadDir);
+            CreateOptions());
 
         var inputPath = "/tmp/downloads/test-channel/video123.mp4";
         var channel = CreateChannel(feedType: FeedType.Audio);
@@ -136,7 +146,7 @@ public class TranscodeServiceTests
             _loggerMock.Object,
             _ffmpegClientMock.Object,
             _defaultOptions,
-            _defaultDownloadDir);
+            CreateOptions());
 
         var inputPath = "/tmp/downloads/test-channel/video123.mp4";
         var channel = CreateChannel(feedType: FeedType.Audio);
@@ -182,7 +192,7 @@ public class TranscodeServiceTests
             _loggerMock.Object,
             _ffmpegClientMock.Object,
             _defaultOptions,
-            _defaultDownloadDir);
+            CreateOptions());
 
         var inputPath = "/tmp/downloads/test-channel/video123.mp4";
         var channel = CreateChannel(feedType: FeedType.Video);
@@ -238,7 +248,7 @@ public class TranscodeServiceTests
             _loggerMock.Object,
             _ffmpegClientMock.Object,
             _defaultOptions,
-            _defaultDownloadDir);
+            CreateOptions());
 
         var inputPath = "/tmp/downloads/test-channel/video123.mp4";
         var channel = CreateChannel(feedType: FeedType.Video);
@@ -284,7 +294,7 @@ public class TranscodeServiceTests
             _loggerMock.Object,
             _ffmpegClientMock.Object,
             _defaultOptions,
-            _defaultDownloadDir);
+            CreateOptions());
 
         var inputPath = "/tmp/downloads/test-channel/video123.mp4";
         var channel = CreateChannel(feedType: FeedType.Both);
@@ -357,7 +367,7 @@ public class TranscodeServiceTests
             _loggerMock.Object,
             _ffmpegClientMock.Object,
             _defaultOptions,
-            _defaultDownloadDir);
+            CreateOptions());
 
         var inputPath = "/tmp/downloads/test-channel/video123.mp4";
         var channel = CreateChannel(feedType: FeedType.Both);
@@ -422,7 +432,7 @@ public class TranscodeServiceTests
             _loggerMock.Object,
             _ffmpegClientMock.Object,
             _defaultOptions,
-            _defaultDownloadDir);
+            CreateOptions());
 
         var inputPath = "/tmp/input.mp4";
         var channel = CreateChannel(id: "channel-abc-123", feedType: FeedType.Audio);
@@ -464,7 +474,7 @@ public class TranscodeServiceTests
             _loggerMock.Object,
             _ffmpegClientMock.Object,
             _defaultOptions,
-            _defaultDownloadDir);
+            CreateOptions());
 
         var inputPath = "/tmp/input.mp4";
         var channel = CreateChannel(id: "channel-abc-123", feedType: FeedType.Video);
@@ -518,7 +528,7 @@ public class TranscodeServiceTests
             _loggerMock.Object,
             _ffmpegClientMock.Object,
             m4aOptions,
-            _defaultDownloadDir);
+            CreateOptions());
 
         var inputPath = "/tmp/input.mp4";
         var channel = CreateChannel(feedType: FeedType.Audio);
@@ -574,7 +584,7 @@ public class TranscodeServiceTests
             _loggerMock.Object,
             _ffmpegClientMock.Object,
             customOptions,
-            _defaultDownloadDir);
+            CreateOptions());
 
         var channel = CreateChannel(feedType: FeedType.Audio);
         var episode = CreateEpisode(channel);
@@ -627,7 +637,7 @@ public class TranscodeServiceTests
             _loggerMock.Object,
             _ffmpegClientMock.Object,
             customOptions,
-            _defaultDownloadDir);
+            CreateOptions());
 
         var channel = CreateChannel(feedType: FeedType.Video);
         var episode = CreateEpisode(channel);
@@ -673,7 +683,7 @@ public class TranscodeServiceTests
             _loggerMock.Object,
             _ffmpegClientMock.Object,
             _defaultOptions,
-            _defaultDownloadDir);
+            CreateOptions());
 
         var channel = CreateChannel(feedType: FeedType.Audio);
         var episode = CreateEpisode(channel);
@@ -703,7 +713,7 @@ public class TranscodeServiceTests
             _loggerMock.Object,
             _ffmpegClientMock.Object,
             _defaultOptions,
-            _defaultDownloadDir);
+            CreateOptions());
 
         var channel = CreateChannel(feedType: FeedType.Video);
         var episode = CreateEpisode(channel);
@@ -733,7 +743,7 @@ public class TranscodeServiceTests
             _loggerMock.Object,
             _ffmpegClientMock.Object,
             _defaultOptions,
-            _defaultDownloadDir);
+            CreateOptions());
 
         var channel = CreateChannel(feedType: FeedType.Both);
         var episode = CreateEpisode(channel);
@@ -771,7 +781,7 @@ public class TranscodeServiceTests
             _loggerMock.Object,
             _ffmpegClientMock.Object,
             _defaultOptions,
-            _defaultDownloadDir);
+            CreateOptions());
 
         var channel = CreateChannel(feedType: FeedType.Both);
         var episode = CreateEpisode(channel);
@@ -826,7 +836,7 @@ public class TranscodeServiceTests
             _loggerMock.Object,
             _ffmpegClientMock.Object,
             _defaultOptions,
-            _defaultDownloadDir);
+            CreateOptions());
 
         var channel = CreateChannel(feedType: FeedType.Audio);
         var episode = CreateEpisode(channel);
@@ -848,7 +858,7 @@ public class TranscodeServiceTests
             _loggerMock.Object,
             _ffmpegClientMock.Object,
             _defaultOptions,
-            _defaultDownloadDir);
+            CreateOptions());
 
         var channel = CreateChannel(feedType: FeedType.Audio);
         var episode = CreateEpisode(channel);
@@ -937,7 +947,7 @@ public class TranscodeServiceTests
             _loggerMock.Object,
             _ffmpegClientMock.Object,
             _defaultOptions,
-            _defaultDownloadDir);
+            CreateOptions());
 
         var channel = CreateChannel(feedType: FeedType.Audio);
         var episode = CreateEpisode(channel);

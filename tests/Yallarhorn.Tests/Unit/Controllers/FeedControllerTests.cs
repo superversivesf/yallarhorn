@@ -4,10 +4,13 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
+using Yallarhorn.Configuration;
 using Yallarhorn.Controllers;
 using Yallarhorn.Data.Enums;
+using Yallarhorn.Data.Repositories;
 using Yallarhorn.Models;
 using Yallarhorn.Services;
 
@@ -16,6 +19,8 @@ public class FeedControllerTests : IDisposable
     private readonly Mock<IFeedService> _feedServiceMock;
     private readonly Mock<ICombinedFeedService> _combinedFeedServiceMock;
     private readonly Mock<IFeedCache> _feedCacheMock;
+    private readonly Mock<IEpisodeRepository> _episodeRepositoryMock;
+    private readonly Mock<IFileService> _fileServiceMock;
     private readonly Mock<ILogger<FeedController>> _loggerMock;
     private readonly FeedController _controller;
 
@@ -24,12 +29,23 @@ public class FeedControllerTests : IDisposable
         _feedServiceMock = new Mock<IFeedService>();
         _combinedFeedServiceMock = new Mock<ICombinedFeedService>();
         _feedCacheMock = new Mock<IFeedCache>();
+        _episodeRepositoryMock = new Mock<IEpisodeRepository>();
+        _fileServiceMock = new Mock<IFileService>();
         _loggerMock = new Mock<ILogger<FeedController>>();
+
+        var options = Options.Create(new YallarhornOptions
+        {
+            DownloadDir = Path.GetTempPath(),
+            TempDir = Path.GetTempPath()
+        });
 
         _controller = new FeedController(
             _feedServiceMock.Object,
             _combinedFeedServiceMock.Object,
             _feedCacheMock.Object,
+            _episodeRepositoryMock.Object,
+            _fileServiceMock.Object,
+            options,
             _loggerMock.Object);
 
         // Set up HttpContext with Request and Response
@@ -390,7 +406,7 @@ public class FeedControllerTests : IDisposable
     #region GetMedia Tests
 
     [Fact]
-    public async Task GetMedia_ShouldReturnAudioFile_WhenAudioType()
+    public void GetMedia_ShouldReturnAudioFile_WhenAudioType()
     {
         // Arrange
         var channelId = "test-channel";
@@ -398,7 +414,7 @@ public class FeedControllerTests : IDisposable
         
         // Act & Assert - This test verifies the endpoint exists and accepts parameters
         // The actual file serving will need integration testing with file system
-        var result = await _controller.GetMedia(channelId, "audio", filename);
+        var result = _controller.GetMedia(channelId, "audio", filename);
         
         // For now, this returns NotFound as file serving depends on actual file storage
         // Integration tests should verify actual file serving
@@ -406,42 +422,42 @@ public class FeedControllerTests : IDisposable
     }
 
     [Fact]
-    public async Task GetMedia_ShouldReturnVideoFile_WhenVideoType()
+    public void GetMedia_ShouldReturnVideoFile_WhenVideoType()
     {
         // Arrange
         var channelId = "test-channel";
         var filename = "video123.mp4";
         
         // Act
-        var result = await _controller.GetMedia(channelId, "video", filename);
+        var result = _controller.GetMedia(channelId, "video", filename);
         
         // Assert
         result.Should().NotBeNull();
     }
 
     [Fact]
-    public async Task GetMedia_ShouldReturn404_ForInvalidType()
+    public void GetMedia_ShouldReturn404_ForInvalidType()
     {
         // Arrange
         var channelId = "test-channel";
         var filename = "video123.mp3";
         
         // Act
-        var result = await _controller.GetMedia(channelId, "invalid", filename);
+        var result = _controller.GetMedia(channelId, "invalid", filename);
         
         // Assert
         result.Should().BeOfType<NotFoundResult>();
     }
 
     [Fact]
-    public async Task GetMedia_ShouldReturnBadRequest_ForInvalidExtension()
+    public void GetMedia_ShouldReturnBadRequest_ForInvalidExtension()
     {
         // Arrange
         var channelId = "test-channel";
         var filename = "video123.txt";
         
         // Act
-        var result = await _controller.GetMedia(channelId, "audio", filename);
+        var result = _controller.GetMedia(channelId, "audio", filename);
         
         // Assert
         result.Should().BeOfType<BadRequestResult>();

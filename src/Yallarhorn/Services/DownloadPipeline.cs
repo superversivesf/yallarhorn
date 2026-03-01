@@ -2,6 +2,8 @@ namespace Yallarhorn.Services;
 
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Yallarhorn.Configuration;
 using Yallarhorn.Data.Entities;
 using Yallarhorn.Data.Enums;
 using Yallarhorn.Data.Repositories;
@@ -153,8 +155,7 @@ public class DownloadPipeline : IDownloadPipeline
     /// <param name="episodeRepository">Episode repository.</param>
     /// <param name="channelRepository">Channel repository.</param>
     /// <param name="downloadCoordinator">Download coordinator for concurrency control.</param>
-    /// <param name="downloadDirectory">Base directory for downloaded files.</param>
-    /// <param name="tempDirectory">Directory for temporary files.</param>
+    /// <param name="yallarhornOptions">Yallarhorn configuration options.</param>
     public DownloadPipeline(
         ILogger<DownloadPipeline> logger,
         IYtDlpClient ytDlpClient,
@@ -162,8 +163,7 @@ public class DownloadPipeline : IDownloadPipeline
         IEpisodeRepository episodeRepository,
         IChannelRepository channelRepository,
         IDownloadCoordinator downloadCoordinator,
-        string downloadDirectory,
-        string tempDirectory)
+        IOptions<YallarhornOptions> yallarhornOptions)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _ytDlpClient = ytDlpClient ?? throw new ArgumentNullException(nameof(ytDlpClient));
@@ -171,8 +171,9 @@ public class DownloadPipeline : IDownloadPipeline
         _episodeRepository = episodeRepository ?? throw new ArgumentNullException(nameof(episodeRepository));
         _channelRepository = channelRepository ?? throw new ArgumentNullException(nameof(channelRepository));
         _downloadCoordinator = downloadCoordinator ?? throw new ArgumentNullException(nameof(downloadCoordinator));
-        _downloadDirectory = downloadDirectory ?? throw new ArgumentNullException(nameof(downloadDirectory));
-        _tempDirectory = tempDirectory ?? throw new ArgumentNullException(nameof(tempDirectory));
+        var opts = yallarhornOptions?.Value ?? throw new ArgumentNullException(nameof(yallarhornOptions));
+        _downloadDirectory = opts.DownloadDir ?? throw new InvalidOperationException("DownloadDir not configured");
+        _tempDirectory = opts.TempDir ?? throw new InvalidOperationException("TempDir not configured");
     }
 
     /// <inheritdoc/>
