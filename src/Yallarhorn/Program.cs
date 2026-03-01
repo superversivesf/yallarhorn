@@ -95,6 +95,14 @@ builder.Services.AddYallarhornBackgroundWorkers(builder.Configuration);
 // Configure Kestrel from ServerOptions
 var serverOptions = builder.Configuration.GetSection(ServerOptions.SectionName).Get<ServerOptions>()
     ?? new ServerOptions();
+
+// Log configuration for debugging
+Console.WriteLine($"Configuration loaded:");
+Console.WriteLine($"  Server.BaseUrl: {serverOptions.BaseUrl}");
+Console.WriteLine($"  Server.Port: {serverOptions.Port}");
+Console.WriteLine($"  Server.FeedPath: {serverOptions.FeedPath}");
+Console.WriteLine($"  Config file: {configPath ?? "none"}");
+
 builder.WebHost.ConfigureKestrel(options =>
 {
     options.ListenAnyIP(serverOptions.Port);

@@ -100,13 +100,13 @@ public class CombinedFeedService : ICombinedFeedService
     /// Creates a synthetic channel for the combined feed.
     /// </summary>
     /// <returns>A synthetic channel with combined feed metadata.</returns>
-    private static Channel CreateSyntheticChannel()
+    private Channel CreateSyntheticChannel()
     {
         return new Channel
         {
             Id = "combined",
             Title = CombinedFeedTitle,
-            Url = "https://localhost",
+            Url = _serverOptions.BaseUrl,
             Description = CombinedFeedDescription,
             FeedType = FeedType.Audio,
             EpisodeCountConfig = MaxCombinedEpisodes,
