@@ -74,9 +74,9 @@ public class FeedsController : ControllerBase
     <div class=""channel"">
         <h3>{EscapeHtml(channel.Title)}</h3>
         <div class=""feed-links"">
-            <a href=""{baseUrl}/feed/{channel.Id}/audio/rss.xml"">Audio RSS</a>
-            <a href=""{baseUrl}/feed/{channel.Id}/audio/atom.xml"">Audio Atom</a>
-            <a href=""{baseUrl}/feed/{channel.Id}/video/rss.xml"" class=""video"">Video RSS</a>
+            <a href=""{baseUrl}/feed/{channel.Id}/audio.rss"">Audio RSS</a>
+            <a href=""{baseUrl}/feed/{channel.Id}/atom.xml"">Audio Atom</a>
+            <a href=""{baseUrl}/feed/{channel.Id}/video.rss"" class=""video"">Video RSS</a>
         </div>
     </div>
 ";
