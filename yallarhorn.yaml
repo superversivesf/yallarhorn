@@ -17,7 +17,7 @@ tempDir: "./temp"
 server:
   host: "0.0.0.0"
   port: 5001
-  baseUrl: "http://localhost:5001"
+  baseUrl: "http://yaml-example:5001"
   feedPath: "/feeds"
   useHttps: false
   maxConcurrentConnections: 100
