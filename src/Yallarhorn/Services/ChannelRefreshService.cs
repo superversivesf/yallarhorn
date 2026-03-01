@@ -272,7 +272,7 @@ public class ChannelRefreshService : IChannelRefreshService
             Title = video.Title,
             Description = video.Description,
             ThumbnailUrl = video.Thumbnail,
-            DurationSeconds = video.Duration,
+            DurationSeconds = video.Duration.HasValue ? (int)video.Duration.Value : null,
             PublishedAt = video.PublishedAt?.DateTime,
             Status = EpisodeStatus.Pending,
             CreatedAt = now,

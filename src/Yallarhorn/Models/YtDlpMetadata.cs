@@ -29,7 +29,7 @@ public class YtDlpMetadata
     /// Duration of the video in seconds.
     /// </summary>
     [JsonPropertyName("duration")]
-    public int? Duration { get; set; }
+    public double? Duration { get; set; }
 
     /// <summary>
     /// URL to the video thumbnail.
