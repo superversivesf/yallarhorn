@@ -45,21 +45,36 @@ var builder = WebApplication.CreateBuilder(argsToProcess);
 // Load YAML config file
 // Priority: 1. --config argument, 2. /app/yallarhorn.yaml (Docker), 3. ./yallarhorn.yaml (local)
 var configPath = options?.ConfigPath;
-if (string.IsNullOrEmpty(configPath))
+var configFound = false;
+
+if (!string.IsNullOrEmpty(configPath))
 {
+    configFound = File.Exists(configPath);
+}
+else
+{
+    // Auto-detect config file
     if (File.Exists("/app/yallarhorn.yaml"))
     {
         configPath = "/app/yallarhorn.yaml";
+        configFound = true;
     }
     else if (File.Exists("yallarhorn.yaml"))
     {
         configPath = "yallarhorn.yaml";
+        configFound = true;
     }
 }
 
-if (!string.IsNullOrEmpty(configPath))
+if (configFound && !string.IsNullOrEmpty(configPath))
 {
-    builder.Configuration.AddYamlFile(configPath, optional: false);
+    builder.Configuration.AddYamlFile(configPath, optional: true);
+}
+else
+{
+    // Log warning - no config file found but app can still start
+    Console.WriteLine("Warning: No configuration file found. Using defaults.");
+    Console.WriteLine("  Searched: --config argument, /app/yallarhorn.yaml, ./yallarhorn.yaml");
 }
 
 // Add Serilog logging

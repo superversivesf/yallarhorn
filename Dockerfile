@@ -30,8 +30,11 @@ RUN apt-get update && \
 # Copy published application
 COPY --from=build /app/publish .
 
-# Create data directory for persistence
-RUN mkdir -p /app/data
+# Copy sample config as fallback
+COPY yallarhorn.yaml.example /app/yallarhorn.yaml.example
+
+# Create directories for persistence
+RUN mkdir -p /app/data /app/downloads /app/temp
 
 # Expose port 5001
 EXPOSE 5001
@@ -40,5 +43,5 @@ EXPOSE 5001
 ENV ASPNETCORE_URLS=http://+:5001
 ENV ASPNETCORE_ENVIRONMENT=Production
 
-# Set entrypoint with default config path
-ENTRYPOINT ["dotnet", "Yallarhorn.dll", "--config", "/app/yallarhorn.yaml"]
+# Entry point - no --config needed, app auto-detects config files
+ENTRYPOINT ["dotnet", "Yallarhorn.dll"]
