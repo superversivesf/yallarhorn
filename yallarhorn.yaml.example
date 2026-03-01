@@ -1,5 +1,9 @@
 # Yallarhorn Podcast Server Configuration
-# Copy this file to yallarhorn.yaml and customize
+# 
+# IMPORTANT: Copy this file to yallarhorn.yaml and add YOUR channels below
+# The Docker container will only see channels you configure here
+#
+# feedType options: "audio", "video", "both"
 
 version: "1.0"
 
@@ -9,7 +13,7 @@ pollInterval: 3600
 # Maximum concurrent downloads
 maxConcurrentDownloads: 3
 
-# Directories for downloaded content
+# Directories for downloaded content (inside container)
 downloadDir: "./downloads"
 tempDir: "./temp"
 
@@ -17,7 +21,7 @@ tempDir: "./temp"
 server:
   host: "0.0.0.0"
   port: 5001
-  baseUrl: "http://localhost:5001"
+  baseUrl: "http://your-server-hostname:5001"  # CHANGE THIS to your server URL
   feedPath: "/feeds"
   useHttps: false
   maxConcurrentConnections: 100
@@ -47,13 +51,23 @@ auth:
   adminAuth:
     enabled: false
 
-# Channels to monitor
-# At least one channel is required
-# feedType options: "audio", "video", "both"
-channels:
-  - name: "Example Channel"
-    url: "https://www.youtube.com/@example"
-    episodeCount: 50
-    enabled: true
-    feedType: "audio"
-    tags: []
+# ==============================================================================
+# CHANNELS - ADD YOUR YOUTUBE CHANNELS HERE
+# ==============================================================================
+# At least one channel is required. The application will download videos from
+# these channels and create podcast feeds.
+#
+# Example:
+# channels:
+#   - name: "AI News & Strategy"
+#     url: "https://www.youtube.com/@NateBJones"
+#     episodeCount: 10
+#     enabled: true
+#     feedType: "audio"
+#   - name: "AI Species"
+#     url: "https://www.youtube.com/@AISpecies"
+#     episodeCount: 15
+#     enabled: true
+#     feedType: "both"
+# ==============================================================================
+channels: []

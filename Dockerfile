@@ -13,7 +13,7 @@ COPY src/Yallarhorn/. "Yallarhorn/"
 
 # Build and publish
 WORKDIR "/src/Yallarhorn"
-RUN dotnet publish "Yallarhorn.csproj" -c Release -o /app/publish --no-restore
+RUN dotnet publish "Yallarhorn.csproj" -c Release -o /app/publish
 
 # Runtime stage
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
