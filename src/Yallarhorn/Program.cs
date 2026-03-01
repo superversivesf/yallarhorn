@@ -42,10 +42,24 @@ if (options != null)
 
 var builder = WebApplication.CreateBuilder(argsToProcess);
 
-// If --config was specified, add it to configuration
-if (options?.ConfigPath != null)
+// Load YAML config file
+// Priority: 1. --config argument, 2. /app/yallarhorn.yaml (Docker), 3. ./yallarhorn.yaml (local)
+var configPath = options?.ConfigPath;
+if (string.IsNullOrEmpty(configPath))
 {
-    builder.Configuration.AddYamlFile(options.ConfigPath, optional: false);
+    if (File.Exists("/app/yallarhorn.yaml"))
+    {
+        configPath = "/app/yallarhorn.yaml";
+    }
+    else if (File.Exists("yallarhorn.yaml"))
+    {
+        configPath = "yallarhorn.yaml";
+    }
+}
+
+if (!string.IsNullOrEmpty(configPath))
+{
+    builder.Configuration.AddYamlFile(configPath, optional: false);
 }
 
 // Add Serilog logging

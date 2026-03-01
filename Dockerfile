@@ -40,5 +40,5 @@ EXPOSE 5001
 ENV ASPNETCORE_URLS=http://+:5001
 ENV ASPNETCORE_ENVIRONMENT=Production
 
-# Set entrypoint
-ENTRYPOINT ["dotnet", "Yallarhorn.dll"]
+# Set entrypoint with default config path
+ENTRYPOINT ["dotnet", "Yallarhorn.dll", "--config", "/app/yallarhorn.yaml"]
