@@ -19,13 +19,20 @@ RUN dotnet publish "Yallarhorn.csproj" -c Release -o /app/publish
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
-# Install yt-dlp, ffmpeg, and curl for media processing and health checks
+# Install ffmpeg, curl, and python3 for yt-dlp
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    yt-dlp \
     ffmpeg \
     curl \
-    && rm -rf /var/lib/apt/lists/*
+    python3 \
+    python3-pip \
+    python3-venv \
+    && rm -rf /var/lib/apt/lists/* \
+    && python3 -m venv /opt/venv
+
+# Install latest yt-dlp from pip (Debian/Ubuntu packages are outdated)
+ENV PATH="/opt/venv/bin:$PATH"
+RUN pip install --upgrade yt-dlp
 
 # Copy published application
 COPY --from=build /app/publish .
