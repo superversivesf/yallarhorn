@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System.Diagnostics;
 using System.Reflection;
+using Yallarhorn.Configuration;
 using Yallarhorn.Data.Enums;
 using Yallarhorn.Data.Repositories;
 using Yallarhorn.Models.Api;
@@ -270,11 +272,11 @@ public class StorageService : IStorageService
     /// <summary>
     /// Initializes a new instance of the <see cref="StorageService"/> class.
     /// </summary>
-    /// <param name="downloadPath">The download directory path.</param>
+    /// <param name="yallarhornOptions">Yallarhorn configuration options.</param>
     /// <param name="logger">The logger.</param>
-    public StorageService(string downloadPath, ILogger<StorageService> logger)
+    public StorageService(IOptions<YallarhornOptions> yallarhornOptions, ILogger<StorageService> logger)
     {
-        _downloadPath = downloadPath ?? throw new ArgumentNullException(nameof(downloadPath));
+        _downloadPath = yallarhornOptions?.Value?.DownloadDir ?? throw new ArgumentNullException(nameof(yallarhornOptions));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 

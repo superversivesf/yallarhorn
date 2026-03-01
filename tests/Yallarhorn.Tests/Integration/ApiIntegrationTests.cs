@@ -160,7 +160,7 @@ public class ApiIntegrationTests : IAsyncLifetime
 
                         // Storage service
                         services.AddSingleton<IStorageService>(sp => new StorageService(
-                            Path.GetTempPath(),
+                            sp.GetRequiredService<IOptions<YallarhornOptions>>(),
                             sp.GetRequiredService<ILogger<StorageService>>()));
 
                         // Auth - disabled for tests
