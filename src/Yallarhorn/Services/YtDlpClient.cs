@@ -70,6 +70,7 @@ public class YtDlpClient : IYtDlpClient
     {
         _logger.LogInformation("Fetching channel videos from: {ChannelUrl}", channelUrl);
 
+        // Note: --print-json outputs to stderr, not stdout
         var arguments = "--flat-playlist --print-json --no-warnings";
         var result = await ExecuteYtDlpAsync(arguments, channelUrl, cancellationToken);
 
@@ -83,11 +84,23 @@ public class YtDlpClient : IYtDlpClient
                 result.Error);
         }
 
+        // yt-dlp outputs JSON to stderr with --print-json
+        var output = result.Error;
+        if (string.IsNullOrEmpty(output))
+        {
+            output = result.Output;
+        }
+
         var videos = new List<YtDlpMetadata>();
-        var jsonLines = result.Output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        var jsonLines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
 
         foreach (var line in jsonLines)
         {
+            if (string.IsNullOrWhiteSpace(line) || !line.TrimStart().StartsWith("{"))
+            {
+                continue;
+            }
+
             try
             {
                 var video = JsonSerializer.Deserialize<YtDlpMetadata>(line, new JsonSerializerOptions
