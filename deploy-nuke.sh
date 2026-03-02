@@ -1,6 +1,6 @@
 #!/bin/bash
 # Deploy script for Yallarhorn Docker Compose deployment
-# Preserves data volumes - use deploy-nuke.sh for fresh start
+# WARNING: Removes all data volumes for a fresh start
 
 set -e  # Exit on any error
 
@@ -15,23 +15,33 @@ SERVICE_PORT=5001
 MAX_HEALTH_RETRIES=30
 HEALTH_CHECK_INTERVAL=2
 
-echo -e "${YELLOW}=== Yallarhorn Deployment Script ===${NC}"
-echo -e "${YELLOW}(Preserving data volumes)${NC}\n"
+echo -e "${RED}=== Yallarhorn Deployment Script (NUKE) ===${NC}"
+echo -e "${RED}WARNING: This will delete all data!${NC}\n"
 
-# Step 1: Stop and remove current containers (preserve volumes)
-echo -e "${YELLOW}[1/4] Stopping containers...${NC}"
-docker compose down
+# Step 1: Stop and remove current containers
+echo -e "${YELLOW}[1/6] Stopping and removing containers...${NC}"
+docker compose down -v
 
-# Step 2: Rebuild the Docker image
-echo -e "${YELLOW}[2/4] Rebuilding Docker image...${NC}"
+# Step 2: Remove all yallarhorn volumes
+echo -e "${YELLOW}[2/6] Removing yallarhorn volumes...${NC}"
+VOLUMES=$(docker volume ls -q | grep yallarhorn || true)
+if [ -n "$VOLUMES" ]; then
+    echo "Removing volumes: $VOLUMES"
+    echo "$VOLUMES" | xargs docker volume rm
+else
+    echo "No yallarhorn volumes found to remove"
+fi
+
+# Step 3: Rebuild the Docker image
+echo -e "${YELLOW}[3/6] Rebuilding Docker image...${NC}"
 docker compose build --no-cache
 
-# Step 3: Deploy with docker-compose
-echo -e "${YELLOW}[3/4] Deploying containers...${NC}"
+# Step 4: Deploy with docker-compose
+echo -e "${YELLOW}[4/6] Deploying containers...${NC}"
 docker compose up -d
 
-# Step 4: Wait for service to be healthy
-echo -e "${YELLOW}[4/4] Waiting for service to be healthy...${NC}"
+# Step 5: Wait for service to be healthy
+echo -e "${YELLOW}[5/6] Waiting for service to be healthy...${NC}"
 RETRY_COUNT=0
 while [ $RETRY_COUNT -lt $MAX_HEALTH_RETRIES ]; do
     if curl -f -s http://localhost:${SERVICE_PORT}/health > /dev/null 2>&1; then
@@ -51,8 +61,8 @@ if [ $RETRY_COUNT -eq $MAX_HEALTH_RETRIES ]; then
     exit 1
 fi
 
-# Get and display version
-echo -e "${YELLOW}Checking version...${NC}"
+# Step 6: Get and display version
+echo -e "${YELLOW}[6/6] Checking version...${NC}"
 VERSION_RESPONSE=$(curl -f -s http://localhost:${SERVICE_PORT}/version)
 
 if [ $? -eq 0 ]; then
