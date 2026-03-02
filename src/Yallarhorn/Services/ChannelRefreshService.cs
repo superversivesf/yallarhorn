@@ -68,6 +68,7 @@ public class ChannelRefreshService : IChannelRefreshService
     private readonly IYtDlpClient _ytDlpClient;
     private readonly IDownloadQueueService _queueService;
     private readonly ILogger<ChannelRefreshService>? _logger;
+    private readonly string _downloadDirectory;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ChannelRefreshService"/> class.
@@ -76,18 +77,21 @@ public class ChannelRefreshService : IChannelRefreshService
     /// <param name="episodeRepository">The episode repository.</param>
     /// <param name="ytDlpClient">The yt-dlp client.</param>
     /// <param name="queueService">The download queue service.</param>
+    /// <param name="downloadDirectory">Directory for downloaded content.</param>
     /// <param name="logger">Optional logger.</param>
     public ChannelRefreshService(
         IChannelRepository channelRepository,
         IEpisodeRepository episodeRepository,
         IYtDlpClient ytDlpClient,
         IDownloadQueueService queueService,
+        string downloadDirectory,
         ILogger<ChannelRefreshService>? logger = null)
     {
         _channelRepository = channelRepository;
         _episodeRepository = episodeRepository;
         _ytDlpClient = ytDlpClient;
         _queueService = queueService;
+        _downloadDirectory = downloadDirectory;
         _logger = logger;
     }
 
@@ -167,7 +171,17 @@ public class ChannelRefreshService : IChannelRefreshService
                     channel.Id);
             }
 
-            // Step 5: Update channel's last_refresh_at timestamp
+            // Step 5: Download channel artwork (non-critical, don't fail if this fails)
+            try
+            {
+                await DownloadChannelArtworkAsync(channel, videoList, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Failed to download channel artwork for {ChannelId}", channel.Id);
+            }
+
+            // Step 6: Update channel's last_refresh_at timestamp
             var refreshedAt = DateTimeOffset.UtcNow;
             channel.LastRefreshAt = refreshedAt;
             channel.UpdatedAt = refreshedAt;
@@ -280,5 +294,65 @@ public class ChannelRefreshService : IChannelRefreshService
         };
 
         return await _episodeRepository.AddAsync(episode, cancellationToken);
+    }
+
+    /// <summary>
+    /// Downloads channel artwork (thumbnail) from the first video's thumbnail.
+    /// </summary>
+    private async Task DownloadChannelArtworkAsync(
+        Channel channel,
+        IReadOnlyList<YtDlpMetadata> videos,
+        CancellationToken cancellationToken)
+    {
+        // Only download if channel doesn't have a local thumbnail
+        if (!string.IsNullOrEmpty(channel.ThumbnailUrl) && 
+            !channel.ThumbnailUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+        {
+            // Already has local thumbnail
+            return;
+        }
+
+        // Get the best thumbnail URL from the channel or first video
+        var thumbnailUrl = channel.ThumbnailUrl;
+        if (string.IsNullOrEmpty(thumbnailUrl) && videos.Count > 0)
+        {
+            // Use first video's thumbnail as fallback
+            thumbnailUrl = videos[0].Thumbnail;
+        }
+
+        if (string.IsNullOrEmpty(thumbnailUrl))
+        {
+            _logger?.LogDebug("No thumbnail URL available for channel {ChannelId}", channel.Id);
+            return;
+        }
+
+        try
+        {
+            // Create thumbnails directory for the channel
+            var thumbnailDir = Path.Combine(_downloadDirectory, channel.Id, "thumbnails");
+            if (!Directory.Exists(thumbnailDir))
+            {
+                Directory.CreateDirectory(thumbnailDir);
+            }
+
+            // Download the thumbnail
+            var thumbnailPath = await _ytDlpClient.DownloadThumbnailAsync(
+                videos[0].Id,
+                thumbnailDir,
+                cancellationToken);
+
+            if (thumbnailPath != null)
+            {
+                // Store relative path
+                var relativePath = Path.GetRelativePath(_downloadDirectory, thumbnailPath);
+                channel.ThumbnailUrl = relativePath;
+                _logger?.LogInformation("Downloaded channel artwork for {ChannelId}: {Path}", channel.Id, relativePath);
+            }
+        }
+        catch (Exception ex)
+        {
+            // Non-critical failure - log and continue
+            _logger?.LogWarning(ex, "Failed to download channel artwork for {ChannelId}", channel.Id);
+        }
     }
 }

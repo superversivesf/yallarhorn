@@ -42,7 +42,8 @@ public class ChannelRefreshServiceTests : IDisposable
             _channelRepository,
             _episodeRepository,
             _ytDlpClientMock.Object,
-            _queueServiceMock.Object);
+            _queueServiceMock.Object,
+            Path.GetTempPath());
 
         _testChannel = new Channel
         {

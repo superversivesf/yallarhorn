@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Yallarhorn.Authentication;
 using Yallarhorn.Background;
 using Yallarhorn.Configuration;
@@ -87,7 +88,17 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IFfmpegClient, FfmpegClient>();
         services.AddSingleton<IDownloadCoordinator, DownloadCoordinator>();
         services.AddScoped<ITranscodeService, TranscodeService>();
-        services.AddScoped<IChannelRefreshService, ChannelRefreshService>();
+        services.AddScoped<IChannelRefreshService>(sp =>
+        {
+            var options = sp.GetRequiredService<IOptions<YallarhornOptions>>().Value;
+            return new ChannelRefreshService(
+                sp.GetRequiredService<IChannelRepository>(),
+                sp.GetRequiredService<IEpisodeRepository>(),
+                sp.GetRequiredService<IYtDlpClient>(),
+                sp.GetRequiredService<IDownloadQueueService>(),
+                options.DownloadDir,
+                sp.GetService<ILogger<ChannelRefreshService>>());
+        });
         services.AddScoped<IDownloadQueueService, DownloadQueueService>();
         services.AddScoped<IDownloadPipeline, DownloadPipeline>();
         services.AddScoped<IEpisodeCleanupService, EpisodeCleanupService>();
