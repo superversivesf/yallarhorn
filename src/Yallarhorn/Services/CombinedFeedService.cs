@@ -47,6 +47,9 @@ public class CombinedFeedService : ICombinedFeedService
         FeedType feedType,
         CancellationToken cancellationToken = default)
     {
+        // Normalize feed type: Audio feeds are now treated as Video (video-only project)
+        var effectiveFeedType = feedType == FeedType.Audio ? FeedType.Video : feedType;
+
         // Get all enabled channels
         var enabledChannels = await _channelRepository.GetEnabledAsync(cancellationToken);
 
@@ -61,7 +64,7 @@ public class CombinedFeedService : ICombinedFeedService
             // This ensures we have enough candidates for proper ordering
             var episodes = await _episodeRepository.GetDownloadedAsync(
                 channel.Id,
-                feedType,
+                effectiveFeedType,
                 MaxCombinedEpisodes,
                 cancellationToken);
 
@@ -81,7 +84,7 @@ public class CombinedFeedService : ICombinedFeedService
         var xmlContent = _rssFeedBuilder.BuildRssFeed(
             syntheticChannel,
             orderedEpisodes,
-            feedType,
+            effectiveFeedType,
             _serverOptions.BaseUrl,
             _serverOptions.FeedPath);
 
@@ -108,7 +111,7 @@ public class CombinedFeedService : ICombinedFeedService
             Title = CombinedFeedTitle,
             Url = _serverOptions.BaseUrl,
             Description = CombinedFeedDescription,
-            FeedType = FeedType.Audio,
+            FeedType = FeedType.Video,
             EpisodeCountConfig = MaxCombinedEpisodes,
             Enabled = true,
             CreatedAt = DateTimeOffset.UtcNow,

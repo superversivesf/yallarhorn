@@ -28,7 +28,7 @@ public class ServerOptions
     /// Used when generating RSS/Atom feed links that clients will access.
     /// </summary>
     [Url(ErrorMessage = "Base URL must be a valid URL")]
-    public string BaseUrl { get; set; } = "http://code-default:8080";
+    public string BaseUrl { get; set; } = "http://localhost:8080";
 
     /// <summary>
     /// Gets or sets the URL path prefix for feed endpoints.

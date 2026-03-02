@@ -84,14 +84,14 @@ public class ChannelRefreshService : IChannelRefreshService
         IEpisodeRepository episodeRepository,
         IYtDlpClient ytDlpClient,
         IDownloadQueueService queueService,
-        string downloadDirectory,
+        string? downloadDirectory = null,
         ILogger<ChannelRefreshService>? logger = null)
     {
         _channelRepository = channelRepository;
         _episodeRepository = episodeRepository;
         _ytDlpClient = ytDlpClient;
         _queueService = queueService;
-        _downloadDirectory = downloadDirectory;
+        _downloadDirectory = downloadDirectory ?? "./downloads";
         _logger = logger;
     }
 

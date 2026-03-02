@@ -61,13 +61,13 @@ auth:
 # channels:
 #   - name: "AI News & Strategy"
 #     url: "https://www.youtube.com/@NateBJones"
-#     episodeCount: 10
+#     episodeCount: 3
 #     enabled: true
-#     feedType: "audio"
+#     feedType: "video"
 #   - name: "AI Species"
 #     url: "https://www.youtube.com/@AISpecies"
-#     episodeCount: 15
+#     episodeCount: 3
 #     enabled: true
-#     feedType: "both"
+#     feedType: "video"
 # ==============================================================================
 channels: []

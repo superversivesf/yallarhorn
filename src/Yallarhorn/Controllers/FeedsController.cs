@@ -70,6 +70,7 @@ public class FeedsController : ControllerBase
         .add-channel .form-group {{ display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 200px; }}
         .add-channel label {{ font-size: 0.85rem; color: #666; font-weight: 500; }}
         .add-channel input[type=""text""] {{ padding: 10px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; width: 100%; }}
+        .add-channel input[type=""number""] {{ padding: 10px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; width: 100%; }}
         .add-channel button {{ background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 4px; font-size: 0.9rem; cursor: pointer; align-self: flex-end; }}
         .add-channel button:hover {{ background: #218838; }}
         .status {{ font-size: 0.85rem; padding: 8px 12px; border-radius: 4px; margin-top: 10px; }}
@@ -98,17 +99,27 @@ public class FeedsController : ControllerBase
                 <label for=""channelUrl"">YouTube Channel URL</label>
                 <input type=""text"" id=""channelUrl"" name=""url"" placeholder=""https://www.youtube.com/@ChannelName"" required />
             </div>
+            <div class=""form-group"" style=""min-width: 120px; max-width: 180px;"">
+                <label for=""episodeCount"">Episodes to Download</label>
+                <input type=""number"" id=""episodeCount"" name=""episodeCount"" min=""1"" max=""100"" value=""3"" required />
+            </div>
             <button type=""submit"">Add</button>
         </form>
         <div id=""addStatus"" class=""status"" style=""display:none;""></div>
+    </div>
+    
+    <div class=""queue-status"" style=""background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #90caf9;"">
+        <h2 style=""margin: 0 0 10px 0; color: #1565c0; font-size: 1rem;"">📥 Download Queue</h2>
+        <div id=""queueContent"">
+            <p style=""margin: 0; color: #666; font-size: 0.9rem;"">Checking queue status...</p>
+        </div>
     </div>
     
     <div class=""combined"">
         <h2>📡 Combined Feeds (All Channels)</h2>
         <p>Subscribe to all channels:</p>
         <div class=""feed-links"">
-            <div class=""feed-item""><a href=""{baseUrl}/feeds/all.rss"">Audio RSS</a><button class=""copy-btn"" onclick=""copyUrl('{baseUrl}/feeds/all.rss', this)"">📋</button></div>
-            <div class=""feed-item""><a href=""{baseUrl}/feeds/all.atom"">Audio Atom</a><button class=""copy-btn"" onclick=""copyUrl('{baseUrl}/feeds/all.atom', this)"">📋</button></div>
+            <div class=""feed-item""><a href=""{baseUrl}/feeds/all.atom"">Atom</a><button class=""copy-btn"" onclick=""copyUrl('{baseUrl}/feeds/all.atom', this)"">📋</button></div>
             <div class=""feed-item""><a href=""{baseUrl}/feeds/all-video.rss"" class=""video"">Video RSS</a><button class=""copy-btn"" onclick=""copyUrl('{baseUrl}/feeds/all-video.rss', this)"">📋</button></div>
             <a href="""" class=""refresh"" onclick=""refreshAll(); return false;"">🔄 Refresh All</a>
         </div>
@@ -124,8 +135,7 @@ public class FeedsController : ControllerBase
     <div class=""channel"" id=""channel-{channel.Id}"">
         <h3>{EscapeHtml(channel.Title)} <span class=""episode-count"">({episodeCount})</span></h3>
         <div class=""feed-links"">
-            <div class=""feed-item""><a href=""{baseUrl}/feed/{channel.Id}/audio.rss"">Audio RSS</a><button class=""copy-btn"" onclick=""copyUrl('{baseUrl}/feed/{channel.Id}/audio.rss', this)"">📋</button></div>
-            <div class=""feed-item""><a href=""{baseUrl}/feed/{channel.Id}/atom.xml"">Audio Atom</a><button class=""copy-btn"" onclick=""copyUrl('{baseUrl}/feed/{channel.Id}/atom.xml', this)"">📋</button></div>
+            <div class=""feed-item""><a href=""{baseUrl}/feed/{channel.Id}/atom.xml"">Atom</a><button class=""copy-btn"" onclick=""copyUrl('{baseUrl}/feed/{channel.Id}/atom.xml', this)"">📋</button></div>
             <div class=""feed-item""><a href=""{baseUrl}/feed/{channel.Id}/video.rss"" class=""video"">Video RSS</a><button class=""copy-btn"" onclick=""copyUrl('{baseUrl}/feed/{channel.Id}/video.rss', this)"">📋</button></div>
             <a href="""" class=""refresh"" onclick=""refreshChannel('{channel.Id}'); return false;"">🔄</a>
             <a href="""" class=""delete-btn"" onclick=""deleteChannel('{channel.Id}', this); return false;"">🗑️</a>
@@ -223,12 +233,13 @@ public class FeedsController : ControllerBase
         document.getElementById('addChannelForm').addEventListener('submit', function(e) {
             e.preventDefault();
             const url = document.getElementById('channelUrl').value;
+            const episodeCount = parseInt(document.getElementById('episodeCount').value) || 3;
             const statusDiv = document.getElementById('addStatus');
             
             fetch('/api/v1/channels', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url: url, episode_count_config: 50, feed_type: 'both', enabled: true })
+                body: JSON.stringify({ url: url, episode_count_config: episodeCount, feed_type: 'both', enabled: true })
             })
             .then(response => {
                 if (response.ok) {
@@ -248,6 +259,55 @@ public class FeedsController : ControllerBase
                 statusDiv.style.display = 'block';
             });
         });
+
+        function updateQueueStatus() {
+            fetch('/api/v1/queue')
+                .then(response => response.json())
+                .then(data => {
+                    var container = document.getElementById('queueContent');
+                    
+                    if (!data || (!data.activeDownloads || data.activeDownloads.length === 0) && !data.pendingCount) {
+                        container.innerHTML = '<p style=""margin: 0; color: #666; font-size: 0.9rem;"">No active downloads</p>';
+                        return;
+                    }
+                    
+                    var html = '';
+                    
+                    if (data.activeDownloads && data.activeDownloads.length > 0) {
+                        html += '<div style=""margin-bottom: 10px;"">';
+                        html += '<div style=""font-size: 0.85rem; color: #333; margin-bottom: 5px;"">Active Downloads:</div>';
+                        
+                        data.activeDownloads.forEach(function(dl) {
+                            var progress = dl.progressPercent || 0;
+                            var title = dl.episodeTitle || 'Unknown';
+                            var channel = dl.channelName || 'Unknown';
+                            html += '<div style=""background: #fff; padding: 8px 10px; border-radius: 4px; margin: 5px 0; font-size: 0.85rem;"">';
+                            html += '<div style=""font-weight: 500; color: #333;"">' + title + '</div>';
+                            html += '<div style=""color: #666; font-size: 0.8rem;"">' + channel + '</div>';
+                            html += '<div style=""background: #e0e0e0; border-radius: 3px; margin-top: 4px; height: 6px; overflow: hidden;"">';
+                            html += '<div style=""background: #28a745; height: 100%; width: ' + progress + '%;""></div></div>';
+                            html += '<div style=""color: #888; font-size: 0.75rem; margin-top: 2px;"">' + progress.toFixed(1) + '%</div></div>';
+                        });
+                        html += '</div>';
+                    }
+                    
+                    if (data.pendingCount > 0) {
+                        html += '<div style=""font-size: 0.85rem; color: #666;"">';
+                        html += '<span style=""font-weight: 500;"">' + data.pendingCount + '</span> download(s) pending</div>';
+                    }
+                    
+                    container.innerHTML = html;
+                })
+                .catch(function() {
+                    var container = document.getElementById('queueContent');
+                    container.innerHTML = '<p style=""margin: 0; color: #666; font-size: 0.9rem;"">Unable to fetch queue status</p>';
+                });
+        }
+
+        // Initial queue status check
+        updateQueueStatus();
+        // Auto-refresh every 10 seconds
+        setInterval(updateQueueStatus, 10000);
     </script>
 </body>
 </html>";

@@ -429,7 +429,7 @@ public class ChannelsControllerTests : IDisposable
 
         response.Data.Url.Should().Be(request.Url);
         response.Data.EpisodeCountConfig.Should().Be(30);
-        response.Data.FeedType.Should().Be("audio");
+        response.Data.FeedType.Should().Be("video");
         response.Data.Enabled.Should().BeTrue();
         response.Message.Should().Contain("created successfully");
 
@@ -512,8 +512,8 @@ public class ChannelsControllerTests : IDisposable
 
         // Assert
         addedChannel.Should().NotBeNull();
-        addedChannel!.EpisodeCountConfig.Should().Be(50); // Default
-        addedChannel.FeedType.Should().Be(FeedType.Audio); // Default
+        addedChannel!.EpisodeCountConfig.Should().Be(3); // Default
+        addedChannel.FeedType.Should().Be(FeedType.Video); // Default
         addedChannel.Enabled.Should().BeTrue(); // Default
     }
 

@@ -114,12 +114,12 @@ public class ChannelDefinition
     /// <summary>
     /// Gets or sets the episode count.
     /// </summary>
-    public int EpisodeCount { get; set; } = 50;
+    public int EpisodeCount { get; set; } = 3;
 
     /// <summary>
     /// Gets or sets the feed type.
     /// </summary>
-    public Data.Enums.FeedType FeedType { get; set; } = Data.Enums.FeedType.Audio;
+    public Data.Enums.FeedType FeedType { get; set; } = Data.Enums.FeedType.Video;
 
     /// <summary>
     /// Gets or sets whether the channel is enabled.

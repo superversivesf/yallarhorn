@@ -86,7 +86,7 @@ public class FeedServiceTests : IDisposable
     public async Task GenerateFeedAsync_ShouldReturnFeedWithXmlContent()
     {
         // Arrange
-        SetupCompletedEpisode("vid1", "Episode 1", FilePathAudio: "audio/ep1.mp3", FileSizeAudio: 1000000);
+        SetupCompletedEpisode("vid1", "Episode 1", FilePathVideo: "video/ep1.mp4", FileSizeVideo: 1000000);
         _rssFeedBuilderMock
             .Setup(r => r.BuildRssFeed(
                 It.IsAny<Channel>(),
@@ -108,7 +108,7 @@ public class FeedServiceTests : IDisposable
     public async Task GenerateFeedAsync_ShouldReturnEtagHash()
     {
         // Arrange
-        SetupCompletedEpisode("vid1", "Episode 1", FilePathAudio: "audio/ep1.mp3", FileSizeAudio: 1000000);
+        SetupCompletedEpisode("vid1", "Episode 1", FilePathVideo: "video/ep1.mp4", FileSizeVideo: 1000000);
         _rssFeedBuilderMock
             .Setup(r => r.BuildRssFeed(
                 It.IsAny<Channel>(),
@@ -155,7 +155,7 @@ public class FeedServiceTests : IDisposable
     [Fact]
     public async Task GenerateFeedAsync_ShouldUseChannelEpisodeCountConfig()
     {
-        // Arrange
+        // Arrange - use video files since Audio is now treated as Video
         _testChannel.EpisodeCountConfig = 5;
         _context.SaveChanges();
 
@@ -165,8 +165,8 @@ public class FeedServiceTests : IDisposable
             SetupCompletedEpisode(
                 $"vid{i}",
                 $"Episode {i}",
-                FilePathAudio: $"audio/ep{i}.mp3",
-                FileSizeAudio: 1000000 * i,
+                FilePathVideo: $"video/ep{i}.mp4",
+                FileSizeVideo: 1000000 * i,
                 publishedAt: DateTimeOffset.UtcNow.AddDays(-i));
         }
 
@@ -195,7 +195,7 @@ public class FeedServiceTests : IDisposable
     [Fact]
     public async Task GenerateFeedAsync_ShouldDefaultTo50Episodes_WhenConfigIsZero()
     {
-        // Arrange
+        // Arrange - use video files since Audio is now treated as Video
         _testChannel.EpisodeCountConfig = 0;
         _context.SaveChanges();
 
@@ -205,8 +205,8 @@ public class FeedServiceTests : IDisposable
             SetupCompletedEpisode(
                 $"vid{i}",
                 $"Episode {i}",
-                FilePathAudio: $"audio/ep{i}.mp3",
-                FileSizeAudio: 1000000 * i,
+                FilePathVideo: $"video/ep{i}.mp4",
+                FileSizeVideo: 1000000 * i,
                 publishedAt: DateTimeOffset.UtcNow.AddDays(-i));
         }
 
@@ -233,8 +233,9 @@ public class FeedServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task GenerateFeedAsync_ShouldFilterByAudioForAudioFeedType()
+    public async Task GenerateFeedAsync_ShouldTreatAudioAsVideoFeedType()
     {
+        // Audio feed type is now treated as Video (video-only project)
         // Arrange
         var audioOnlyEpisode = SetupCompletedEpisode(
             "vid1", "Audio Only",
@@ -261,13 +262,13 @@ public class FeedServiceTests : IDisposable
             })
             .Returns("<rss>test</rss>");
 
-        // Act
+        // Act - FeedType.Audio is now treated as FeedType.Video
         await _service.GenerateFeedAsync(_testChannel.Id, FeedType.Audio);
 
-        // Assert
+        // Assert - Audio now behaves like Video (filters for video episodes)
         capturedEpisodes.Should().NotBeNull();
-        capturedEpisodes!.Select(e => e.VideoId).Should().Contain(new[] { "vid1", "vid3" });
-        capturedEpisodes!.Select(e => e.VideoId).Should().NotContain("vid2");
+        capturedEpisodes!.Select(e => e.VideoId).Should().Contain(new[] { "vid2", "vid3" });
+        capturedEpisodes!.Select(e => e.VideoId).Should().NotContain("vid1");
     }
 
     [Fact]
@@ -348,10 +349,10 @@ public class FeedServiceTests : IDisposable
     [Fact]
     public async Task GenerateFeedAsync_ShouldFilterCompletedEpisodesOnly()
     {
-        // Arrange
+        // Arrange - use video files since Audio is now treated as Video
         var completedEpisode = SetupCompletedEpisode(
             "vid1", "Completed",
-            FilePathAudio: "audio/ep1.mp3", FileSizeAudio: 1000000);
+            FilePathVideo: "video/ep1.mp4", FileSizeVideo: 1000000);
         var pendingEpisode = CreateEpisode(
             "vid2", "Pending",
             status: EpisodeStatus.Pending);
@@ -382,18 +383,18 @@ public class FeedServiceTests : IDisposable
     [Fact]
     public async Task GenerateFeedAsync_ShouldOrderByPublishedAtDescending()
     {
-        // Arrange
+        // Arrange - use video files since Audio is now treated as Video
         var olderEpisode = SetupCompletedEpisode(
             "vid1", "Older Episode",
-            FilePathAudio: "audio/ep1.mp3", FileSizeAudio: 1000000,
+            FilePathVideo: "video/ep1.mp4", FileSizeVideo: 1000000,
             publishedAt: DateTimeOffset.UtcNow.AddDays(-10));
         var newerEpisode = SetupCompletedEpisode(
             "vid2", "Newer Episode",
-            FilePathAudio: "audio/ep2.mp3", FileSizeAudio: 1000000,
+            FilePathVideo: "video/ep2.mp4", FileSizeVideo: 1000000,
             publishedAt: DateTimeOffset.UtcNow.AddDays(-1));
         var oldestEpisode = SetupCompletedEpisode(
             "vid3", "Oldest Episode",
-            FilePathAudio: "audio/ep3.mp3", FileSizeAudio: 1000000,
+            FilePathVideo: "video/ep3.mp4", FileSizeVideo: 1000000,
             publishedAt: DateTimeOffset.UtcNow.AddDays(-30));
 
         IEnumerable<Episode>? capturedEpisodes = null;
@@ -424,14 +425,14 @@ public class FeedServiceTests : IDisposable
     [Fact]
     public async Task GenerateFeedAsync_ShouldHandleEpisodesWithNullPublishedAt()
     {
-        // Arrange
+        // Arrange - use video files since Audio is now treated as Video
         var episodeWithDate = SetupCompletedEpisode(
             "vid1", "Episode With Date",
-            FilePathAudio: "audio/ep1.mp3", FileSizeAudio: 1000000,
+            FilePathVideo: "video/ep1.mp4", FileSizeVideo: 1000000,
             publishedAt: DateTimeOffset.UtcNow.AddDays(-1));
         var episodeWithoutDate = SetupCompletedEpisode(
             "vid2", "Episode Without Date",
-            FilePathAudio: "audio/ep2.mp3", FileSizeAudio: 1000000,
+            FilePathVideo: "video/ep2.mp4", FileSizeVideo: 1000000,
             publishedAt: null);
 
         IEnumerable<Episode>? capturedEpisodes = null;
@@ -460,7 +461,7 @@ public class FeedServiceTests : IDisposable
     public async Task GenerateFeedAsync_ShouldProduceSameEtagForSameContent()
     {
         // Arrange
-        SetupCompletedEpisode("vid1", "Episode 1", FilePathAudio: "audio/ep1.mp3", FileSizeAudio: 1000000);
+        SetupCompletedEpisode("vid1", "Episode 1", FilePathVideo: "video/ep1.mp4", FileSizeVideo: 1000000);
         _rssFeedBuilderMock
             .Setup(r => r.BuildRssFeed(
                 It.IsAny<Channel>(),
@@ -482,7 +483,7 @@ public class FeedServiceTests : IDisposable
     public async Task GenerateFeedAsync_ShouldProduceDifferentEtagForDifferentContent()
     {
         // Arrange
-        SetupCompletedEpisode("vid1", "Episode 1", FilePathAudio: "audio/ep1.mp3", FileSizeAudio: 1000000);
+        SetupCompletedEpisode("vid1", "Episode 1", FilePathVideo: "video/ep1.mp4", FileSizeVideo: 1000000);
 
         int callCount = 0;
         _rssFeedBuilderMock
@@ -505,7 +506,7 @@ public class FeedServiceTests : IDisposable
     [Fact]
     public async Task GenerateFeedAsync_ShouldUseDefaultEpisodeCount_WhenConfigIsNegative()
     {
-        // Arrange
+        // Arrange - use video files since Audio is now treated as Video
         _testChannel.EpisodeCountConfig = -5;
         _context.SaveChanges();
 
@@ -514,8 +515,8 @@ public class FeedServiceTests : IDisposable
             SetupCompletedEpisode(
                 $"vid{i}",
                 $"Episode {i}",
-                FilePathAudio: $"audio/ep{i}.mp3",
-                FileSizeAudio: 1000000 * i,
+                FilePathVideo: $"video/ep{i}.mp4",
+                FileSizeVideo: 1000000 * i,
                 publishedAt: DateTimeOffset.UtcNow.AddDays(-i));
         }
 

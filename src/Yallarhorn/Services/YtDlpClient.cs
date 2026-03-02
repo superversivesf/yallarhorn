@@ -235,8 +235,13 @@ public class YtDlpClient : IYtDlpClient
 
     private static string BuildDownloadArguments(string outputPath)
     {
-        // Use template for output, get best mp4 format or fallback
-        return $"-f \"bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best\" " +
+        // Prefer pre-merged 480p MP4 from YouTube, fallback to separate video+audio merge
+        // Format selector priority:
+        // 1. Pre-merged 480p MP4 (best[height<=480][ext=mp4])
+        // 2. Separate 480p MP4 video + m4a audio merged
+        // 3. 480p MP4 video + any audio merged
+        // 4. Best available up to 480p
+        return $"-f \"bestvideo[height<=480][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=480][ext=mp4]+bestaudio/best[height<=480][ext=mp4]/best[height<=480]\" " +
                $"--merge-output-format mp4 " +
                $"--no-playlist " +
                $"--no-overwrites " +

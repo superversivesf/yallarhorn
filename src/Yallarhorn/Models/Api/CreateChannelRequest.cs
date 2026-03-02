@@ -30,14 +30,14 @@ public class CreateChannelRequest
     public string? Description { get; set; }
 
     /// <summary>
-    /// Gets or sets the number of episodes to keep (default: 50, range: 1-1000).
+    /// Gets or sets the number of episodes to keep (default: 3, range: 1-1000).
     /// </summary>
     [JsonPropertyName("episode_count_config")]
     [Range(1, 1000, ErrorMessage = "Episode count config must be between 1 and 1000")]
     public int? EpisodeCountConfig { get; set; }
 
     /// <summary>
-    /// Gets or sets the feed type (audio, video, both). Default: audio.
+    /// Gets or sets the feed type (audio, video, both). Default: video.
     /// </summary>
     [JsonPropertyName("feed_type")]
     [RegularExpression("^(audio|video|both)$", ErrorMessage = "Feed type must be 'audio', 'video', or 'both'")]

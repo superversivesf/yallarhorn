@@ -207,7 +207,7 @@ public class ChannelsController : ControllerBase
         }
 
         // Parse feed type
-        var feedType = FeedType.Audio;
+        var feedType = FeedType.Video;
         if (!string.IsNullOrEmpty(request.FeedType))
         {
             feedType = Enum.Parse<FeedType>(request.FeedType, ignoreCase: true);
@@ -221,7 +221,7 @@ public class ChannelsController : ControllerBase
             Url = request.Url,
             Title = request.Title ?? ExtractChannelTitle(request.Url),
             Description = request.Description,
-            EpisodeCountConfig = request.EpisodeCountConfig ?? 50,
+            EpisodeCountConfig = request.EpisodeCountConfig ?? 3,
             FeedType = feedType,
             Enabled = request.Enabled ?? true,
             CreatedAt = now,

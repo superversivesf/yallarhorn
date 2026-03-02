@@ -69,7 +69,7 @@ public class CombinedFeedServiceTests
                 It.IsAny<string>()))
             .Returns("<rss version=\"2.0\"><channel></channel></rss>");
 
-        // Act
+        // Act - FeedType.Audio is now treated as Video internally
         var result = await _service.GenerateCombinedFeedAsync(FeedType.Audio);
 
         // Assert
@@ -82,7 +82,7 @@ public class CombinedFeedServiceTests
         _rssFeedBuilderMock.Verify(b => b.BuildRssFeed(
             It.IsAny<Channel>(),
             It.Is<IEnumerable<Episode>>(e => !e.Any()),
-            FeedType.Audio,
+            FeedType.Video, // Audio is converted to Video internally
             It.IsAny<string>(),
             It.IsAny<string>()), Times.Once);
     }
@@ -99,12 +99,13 @@ public class CombinedFeedServiceTests
             .Setup(r => r.GetEnabledAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync([channel1, channel2]);
 
+        // FeedType.Audio is converted to FeedType.Video internally
         _episodeRepositoryMock
-            .Setup(r => r.GetDownloadedAsync(channel1.Id, FeedType.Audio, 100, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetDownloadedAsync(channel1.Id, FeedType.Video, 100, It.IsAny<CancellationToken>()))
             .ReturnsAsync([CreateTestEpisode(channel1, "vid1", "Episode 1")]);
 
         _episodeRepositoryMock
-            .Setup(r => r.GetDownloadedAsync(channel2.Id, FeedType.Audio, 100, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetDownloadedAsync(channel2.Id, FeedType.Video, 100, It.IsAny<CancellationToken>()))
             .ReturnsAsync([CreateTestEpisode(channel2, "vid2", "Episode 2")]);
 
         _rssFeedBuilderMock
@@ -122,8 +123,8 @@ public class CombinedFeedServiceTests
         // Assert
         result.Should().NotBeNull();
 
-        _episodeRepositoryMock.Verify(r => r.GetDownloadedAsync(channel1.Id, FeedType.Audio, 100, It.IsAny<CancellationToken>()), Times.Once);
-        _episodeRepositoryMock.Verify(r => r.GetDownloadedAsync(channel2.Id, FeedType.Audio, 100, It.IsAny<CancellationToken>()), Times.Once);
+        _episodeRepositoryMock.Verify(r => r.GetDownloadedAsync(channel1.Id, FeedType.Video, 100, It.IsAny<CancellationToken>()), Times.Once);
+        _episodeRepositoryMock.Verify(r => r.GetDownloadedAsync(channel2.Id, FeedType.Video, 100, It.IsAny<CancellationToken>()), Times.Once);
         // Verify disabled channel 3 was never queried
         _episodeRepositoryMock.Verify(r => r.GetDownloadedAsync(channel3.Id, It.IsAny<FeedType>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -148,12 +149,13 @@ public class CombinedFeedServiceTests
             .Select(i => CreateTestEpisode(channel2, $"vid2-{i}", $"Episode 2-{i}", publishedAt: DateTimeOffset.UtcNow.AddDays(-i).AddHours(-12)))
             .ToList();
 
+        // FeedType.Audio is converted to FeedType.Video internally
         _episodeRepositoryMock
-            .Setup(r => r.GetDownloadedAsync(channel1.Id, FeedType.Audio, 100, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetDownloadedAsync(channel1.Id, FeedType.Video, 100, It.IsAny<CancellationToken>()))
             .ReturnsAsync(episodes1);
 
         _episodeRepositoryMock
-            .Setup(r => r.GetDownloadedAsync(channel2.Id, FeedType.Audio, 100, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetDownloadedAsync(channel2.Id, FeedType.Video, 100, It.IsAny<CancellationToken>()))
             .ReturnsAsync(episodes2);
 
         List<Episode>? capturedEpisodes = null;
@@ -193,12 +195,13 @@ public class CombinedFeedServiceTests
         var episode2 = CreateTestEpisode(channel2, "vid2", "New Episode", publishedAt: DateTimeOffset.Parse("2024-01-20"));
         var episode3 = CreateTestEpisode(channel1, "vid3", "Middle Episode", publishedAt: DateTimeOffset.Parse("2024-01-15"));
 
+        // FeedType.Audio is converted to FeedType.Video internally
         _episodeRepositoryMock
-            .Setup(r => r.GetDownloadedAsync(channel1.Id, FeedType.Audio, 100, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetDownloadedAsync(channel1.Id, FeedType.Video, 100, It.IsAny<CancellationToken>()))
             .ReturnsAsync([episode1, episode3]);
 
         _episodeRepositoryMock
-            .Setup(r => r.GetDownloadedAsync(channel2.Id, FeedType.Audio, 100, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetDownloadedAsync(channel2.Id, FeedType.Video, 100, It.IsAny<CancellationToken>()))
             .ReturnsAsync([episode2]);
 
         List<Episode>? capturedEpisodes = null;
@@ -248,7 +251,7 @@ public class CombinedFeedServiceTests
             })
             .Returns("<rss version=\"2.0\"><channel></channel></rss>");
 
-        // Act
+        // Act - FeedType.Audio internally converted to Video
         var result = await _service.GenerateCombinedFeedAsync(FeedType.Audio);
 
         // Assert
@@ -256,6 +259,8 @@ public class CombinedFeedServiceTests
         capturedChannel!.Title.Should().Be("All Channels");
         capturedChannel.Description.Should().Be("Combined feed from all channels");
         capturedChannel.Id.Should().Be("combined");
+        // FeedType on synthetic channel is now Video
+        capturedChannel.FeedType.Should().Be(FeedType.Video);
     }
 
     [Fact]
@@ -292,8 +297,9 @@ public class CombinedFeedServiceTests
     }
 
     [Fact]
-    public async Task GenerateCombinedFeedAsync_AudioFeedType_ShouldRequestAudioEpisodes()
+    public async Task GenerateCombinedFeedAsync_AudioFeedType_ShouldBeTreatedAsVideo()
     {
+        // Audio feed type is now treated as Video (video-only project)
         // Arrange
         var channel = CreateTestChannel(id: "ch1", title: "Test Channel");
 
@@ -302,27 +308,27 @@ public class CombinedFeedServiceTests
             .ReturnsAsync([channel]);
 
         _episodeRepositoryMock
-            .Setup(r => r.GetDownloadedAsync(channel.Id, FeedType.Audio, 100, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetDownloadedAsync(channel.Id, FeedType.Video, 100, It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
 
         _rssFeedBuilderMock
             .Setup(b => b.BuildRssFeed(
                 It.IsAny<Channel>(),
                 It.IsAny<IEnumerable<Episode>>(),
-                FeedType.Audio,
+                FeedType.Video,
                 It.IsAny<string>(),
                 It.IsAny<string>()))
             .Returns("<rss version=\"2.0\"><channel></channel></rss>");
 
-        // Act
+        // Act - FeedType.Audio is now treated as FeedType.Video
         var result = await _service.GenerateCombinedFeedAsync(FeedType.Audio);
 
-        // Assert
-        _episodeRepositoryMock.Verify(r => r.GetDownloadedAsync(channel.Id, FeedType.Audio, 100, It.IsAny<CancellationToken>()), Times.Once);
+        // Assert - Audio now requests Video episodes
+        _episodeRepositoryMock.Verify(r => r.GetDownloadedAsync(channel.Id, FeedType.Video, 100, It.IsAny<CancellationToken>()), Times.Once);
         _rssFeedBuilderMock.Verify(b => b.BuildRssFeed(
             It.IsAny<Channel>(),
             It.IsAny<IEnumerable<Episode>>(),
-            FeedType.Audio,
+            FeedType.Video,
             It.IsAny<string>(),
             It.IsAny<string>()), Times.Once);
     }
@@ -402,7 +408,7 @@ public class CombinedFeedServiceTests
             .ReturnsAsync([channel]);
 
         _episodeRepositoryMock
-            .Setup(r => r.GetDownloadedAsync(channel.Id, FeedType.Audio, 100, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetDownloadedAsync(channel.Id, FeedType.Video, 100, It.IsAny<CancellationToken>()))
             .ReturnsAsync([CreateTestEpisode(channel, "vid1", "Episode 1")]);
 
         _rssFeedBuilderMock
@@ -474,7 +480,7 @@ public class CombinedFeedServiceTests
         var episodeWithoutDate = CreateTestEpisode(channel, "vid2", "No Date", publishedAt: null);
 
         _episodeRepositoryMock
-            .Setup(r => r.GetDownloadedAsync(channel.Id, FeedType.Audio, 100, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetDownloadedAsync(channel.Id, FeedType.Video, 100, It.IsAny<CancellationToken>()))
             .ReturnsAsync([episodeWithDate, episodeWithoutDate]);
 
         List<Episode>? capturedEpisodes = null;
@@ -578,8 +584,8 @@ public class CombinedFeedServiceTests
             Title = title,
             Description = $"Description for {title}",
             PublishedAt = publishedAt,
-            FilePathAudio = $"test/audio/{videoId}.mp3",
-            FileSizeAudio = 1024,
+            FilePathVideo = $"test/video/{videoId}.mp4",
+            FileSizeVideo = 2048,
             Status = EpisodeStatus.Completed,
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow

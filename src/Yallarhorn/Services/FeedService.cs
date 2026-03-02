@@ -57,14 +57,17 @@ public class FeedService : IFeedService
         }
 
         // Determine the episode count limit
-        var episodeCount = channel.EpisodeCountConfig > 0 
-            ? channel.EpisodeCountConfig 
+        var episodeCount = channel.EpisodeCountConfig > 0
+            ? channel.EpisodeCountConfig
             : DefaultEpisodeCount;
+
+        // Normalize feed type: Audio feeds are now treated as Video (video-only project)
+        var effectiveFeedType = feedType == FeedType.Audio ? FeedType.Video : feedType;
 
         // Get downloaded episodes for the specified feed type
         var episodes = await _episodeRepository.GetDownloadedAsync(
             channelId,
-            feedType,
+            effectiveFeedType,
             episodeCount,
             cancellationToken);
 
@@ -72,7 +75,7 @@ public class FeedService : IFeedService
         var xmlContent = _rssFeedBuilder.BuildRssFeed(
             channel,
             episodes,
-            feedType,
+            effectiveFeedType,
             _serverOptions.BaseUrl,
             _serverOptions.FeedPath);
 

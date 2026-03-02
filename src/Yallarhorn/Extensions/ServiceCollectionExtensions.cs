@@ -88,22 +88,24 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IFfmpegClient, FfmpegClient>();
         services.AddSingleton<IDownloadCoordinator, DownloadCoordinator>();
         services.AddScoped<ITranscodeService, TranscodeService>();
-        services.AddScoped<IChannelRefreshService>(sp =>
-        {
-            var options = sp.GetRequiredService<IOptions<YallarhornOptions>>().Value;
-            return new ChannelRefreshService(
-                sp.GetRequiredService<IChannelRepository>(),
-                sp.GetRequiredService<IEpisodeRepository>(),
-                sp.GetRequiredService<IYtDlpClient>(),
-                sp.GetRequiredService<IDownloadQueueService>(),
-                options.DownloadDir,
-                sp.GetService<ILogger<ChannelRefreshService>>());
-        });
         services.AddScoped<IDownloadQueueService, DownloadQueueService>();
         services.AddScoped<IDownloadPipeline, DownloadPipeline>();
         services.AddScoped<IEpisodeCleanupService, EpisodeCleanupService>();
         services.AddSingleton<IPipelineMetrics, PipelineMetrics>();
         services.AddSingleton<IFileService, FileService>();
+        
+        // ChannelRefreshService - use default download directory if options not configured
+        services.AddScoped<IChannelRefreshService>(sp =>
+        {
+            var options = sp.GetService<IOptions<YallarhornOptions>>()?.Value;
+            var downloadDir = options?.DownloadDir ?? "./downloads";
+            var channelRepo = sp.GetRequiredService<IChannelRepository>();
+            var episodeRepo = sp.GetRequiredService<IEpisodeRepository>();
+            var ytDlpClient = sp.GetRequiredService<IYtDlpClient>();
+            var queueService = sp.GetRequiredService<IDownloadQueueService>();
+            var logger = sp.GetService<ILogger<ChannelRefreshService>>();
+            return new ChannelRefreshService(channelRepo, episodeRepo, ytDlpClient, queueService, downloadDir, logger);
+        });
 
         // Phase 4 Services
         services.AddSingleton<IVersionService, VersionService>();
