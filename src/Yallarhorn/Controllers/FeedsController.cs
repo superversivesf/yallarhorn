@@ -55,6 +55,8 @@ public class FeedsController : ControllerBase
         .feed-links a.video:hover {{ background: #a35200; }}
         .feed-links a.refresh {{ background: #28a745; cursor: pointer; }}
         .feed-links a.refresh:hover {{ background: #218838; }}
+        .feed-links a.delete-btn {{ background: #dc3545; cursor: pointer; color: white; padding: 6px 10px; border-radius: 4px; text-decoration: none; font-size: 0.85rem; }}
+        .feed-links a.delete-btn:hover {{ background: #c82333; }}
         .copy-btn {{ background: #6c757d; color: white; border: none; padding: 6px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; }}
         .copy-btn:hover {{ background: #5a6268; }}
         .copy-btn.copied {{ background: #28a745; }}
@@ -126,6 +128,7 @@ public class FeedsController : ControllerBase
             <div class=""feed-item""><a href=""{baseUrl}/feed/{channel.Id}/atom.xml"">Audio Atom</a><button class=""copy-btn"" onclick=""copyUrl('{baseUrl}/feed/{channel.Id}/atom.xml', this)"">📋</button></div>
             <div class=""feed-item""><a href=""{baseUrl}/feed/{channel.Id}/video.rss"" class=""video"">Video RSS</a><button class=""copy-btn"" onclick=""copyUrl('{baseUrl}/feed/{channel.Id}/video.rss', this)"">📋</button></div>
             <a href="""" class=""refresh"" onclick=""refreshChannel('{channel.Id}'); return false;"">🔄</a>
+            <a href="""" class=""delete-btn"" onclick=""deleteChannel('{channel.Id}', this); return false;"">🗑️</a>
         </div>
     </div>
 ";
@@ -193,6 +196,28 @@ public class FeedsController : ControllerBase
             fetch('/api/v1/refresh', { method: 'POST' })
                 .then(response => response.ok ? showToast('Refreshing all channels', true) : showToast('Failed to refresh', false))
                 .catch(() => showToast('Error refreshing', false));
+        }
+
+        function deleteChannel(channelId, btn) {
+            if (!confirm('Delete this channel and all its episodes? This cannot be undone.')) {
+                return;
+            }
+            btn.textContent = 'Deleting...';
+            fetch('/api/v1/channels/' + channelId, { method: 'DELETE' })
+                .then(response => {
+                    if (response.ok) {
+                        showToast('Channel deleted', true);
+                        const div = document.getElementById('channel-' + channelId);
+                        if (div) div.remove();
+                    } else {
+                        btn.textContent = '🗑️';
+                        showToast('Failed to delete', false);
+                    }
+                })
+                .catch(() => {
+                    btn.textContent = '🗑️';
+                    showToast('Error deleting', false);
+                });
         }
 
         document.getElementById('addChannelForm').addEventListener('submit', function(e) {
