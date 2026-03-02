@@ -37,42 +37,57 @@ public class FeedsController : ControllerBase
 <html>
 <head>
     <meta charset=""utf-8"">
+    <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
     <title>Yallarhorn Podcast Feeds</title>
     <style>
-        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; }}
-        h1 {{ color: #333; }}
-        h2 {{ color: #666; margin-top: 30px; }}
-        .channel {{ background: #f5f5f5; padding: 15px; margin: 10px 0; border-radius: 8px; position: relative; }}
-        .channel h3 {{ margin: 0 0 5px 0; color: #444; display: flex; align-items: center; gap: 10px; }}
-        .episode-count {{ font-size: 14px; color: #888; font-weight: normal; }}
-        .feed-links {{ display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }}
-        .feed-links a {{ background: #0066cc; color: white; padding: 5px 12px; border-radius: 4px; text-decoration: none; font-size: 14px; }}
+        * {{ box-sizing: border-box; }}
+        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 900px; margin: 0 auto; padding: 15px; }}
+        h1 {{ color: #333; font-size: 1.5rem; margin-bottom: 10px; }}
+        h2 {{ color: #666; margin-top: 25px; font-size: 1.1rem; }}
+        .channel {{ background: #f5f5f5; padding: 12px; margin: 8px 0; border-radius: 8px; }}
+        .channel h3 {{ margin: 0 0 5px 0; color: #444; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 1rem; }}
+        .episode-count {{ font-size: 0.85rem; color: #888; font-weight: normal; }}
+        .feed-links {{ display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; align-items: center; }}
+        .feed-item {{ display: flex; align-items: center; gap: 3px; }}
+        .feed-links a {{ background: #0066cc; color: white; padding: 6px 10px; border-radius: 4px; text-decoration: none; font-size: 0.85rem; }}
         .feed-links a:hover {{ background: #0052a3; }}
         .feed-links a.video {{ background: #cc6600; }}
         .feed-links a.video:hover {{ background: #a35200; }}
         .feed-links a.refresh {{ background: #28a745; cursor: pointer; }}
         .feed-links a.refresh:hover {{ background: #218838; }}
-        .combined {{ background: #e8f4e8; padding: 15px; border-radius: 8px; margin-top: 20px; }}
-        .combined h2 {{ margin: 0 0 15px 0; color: #2d5a2d; }}
-        code {{ background: #eee; padding: 2px 6px; border-radius: 3px; font-size: 13px; }}
-        .add-channel {{ background: #fff3cd; padding: 20px; border-radius: 8px; margin: 30px 0; border: 1px solid #ffc107; }}
-        .add-channel h2 {{ margin: 0 0 15px 0; color: #856404; }}
-        .add-channel form {{ display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }}
-        .add-channel .form-group {{ display: flex; flex-direction: column; gap: 5px; }}
-        .add-channel label {{ font-size: 14px; color: #666; font-weight: 500; }}
-        .add-channel input[type=""text""] {{ padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; min-width: 350px; }}
-        .add-channel button {{ background: #28a745; color: white; border: none; padding: 8px 20px; border-radius: 4px; font-size: 14px; cursor: pointer; }}
+        .copy-btn {{ background: #6c757d; color: white; border: none; padding: 6px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; }}
+        .copy-btn:hover {{ background: #5a6268; }}
+        .copy-btn.copied {{ background: #28a745; }}
+        .combined {{ background: #e8f4e8; padding: 12px; border-radius: 8px; margin-top: 15px; }}
+        .combined h2 {{ margin: 0 0 10px 0; color: #2d5a2d; font-size: 1rem; }}
+        .combined p {{ margin: 0 0 10px 0; font-size: 0.9rem; }}
+        code {{ background: #eee; padding: 2px 6px; border-radius: 3px; font-size: 0.8rem; }}
+        .add-channel {{ background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #ffc107; }}
+        .add-channel h2 {{ margin: 0 0 12px 0; color: #856404; font-size: 1rem; }}
+        .add-channel form {{ display: flex; gap: 10px; flex-wrap: wrap; }}
+        .add-channel .form-group {{ display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 200px; }}
+        .add-channel label {{ font-size: 0.85rem; color: #666; font-weight: 500; }}
+        .add-channel input[type=""text""] {{ padding: 10px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; width: 100%; }}
+        .add-channel button {{ background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 4px; font-size: 0.9rem; cursor: pointer; align-self: flex-end; }}
         .add-channel button:hover {{ background: #218838; }}
-        .status {{ font-size: 14px; padding: 5px 10px; border-radius: 4px; margin-top: 10px; }}
+        .status {{ font-size: 0.85rem; padding: 8px 12px; border-radius: 4px; margin-top: 10px; }}
         .status.success {{ background: #d4edda; color: #155724; }}
         .status.error {{ background: #f8d7da; color: #721c24; }}
-        .toast {{ position: fixed; bottom: 20px; right: 20px; padding: 15px 25px; border-radius: 8px; color: white; font-size: 14px; opacity: 0; transition: opacity 0.3s; z-index: 1000; }}
+        .toast {{ position: fixed; bottom: 15px; left: 15px; right: 15px; padding: 12px 20px; border-radius: 8px; color: white; font-size: 0.9rem; opacity: 0; transition: opacity 0.3s; z-index: 1000; text-align: center; }}
         .toast.success {{ background: #28a745; opacity: 1; }}
         .toast.error {{ background: #dc3545; opacity: 1; }}
+        @media (max-width: 600px) {{
+            body {{ padding: 10px; }}
+            h1 {{ font-size: 1.3rem; }}
+            .feed-links {{ gap: 6px; }}
+            .feed-links a {{ padding: 5px 8px; font-size: 0.8rem; }}
+            .copy-btn {{ padding: 5px 6px; font-size: 0.7rem; }}
+            .add-channel .form-group {{ min-width: 100%; }}
+        }}
     </style>
 </head>
 <body>
-    <h1>🎙️ Yallarhorn Podcast Feeds</h1>
+    <h1>🎙️ Yallarhorn Feeds</h1>
 
     <div class=""add-channel"">
         <h2>➕ Add New Channel</h2>
@@ -81,18 +96,18 @@ public class FeedsController : ControllerBase
                 <label for=""channelUrl"">YouTube Channel URL</label>
                 <input type=""text"" id=""channelUrl"" name=""url"" placeholder=""https://www.youtube.com/@ChannelName"" required />
             </div>
-            <button type=""submit"">Add Channel</button>
+            <button type=""submit"">Add</button>
         </form>
         <div id=""addStatus"" class=""status"" style=""display:none;""></div>
     </div>
     
     <div class=""combined"">
         <h2>📡 Combined Feeds (All Channels)</h2>
-        <p>Subscribe to all channels in one feed:</p>
+        <p>Subscribe to all channels:</p>
         <div class=""feed-links"">
-            <a href=""{baseUrl}/feeds/all.rss"">All Audio RSS</a>
-            <a href=""{baseUrl}/feeds/all.atom"">All Audio Atom</a>
-            <a href=""{baseUrl}/feeds/all-video.rss"" class=""video"">All Video RSS</a>
+            <div class=""feed-item""><a href=""{baseUrl}/feeds/all.rss"">Audio RSS</a><button class=""copy-btn"" onclick=""copyUrl('{baseUrl}/feeds/all.rss', this)"">📋</button></div>
+            <div class=""feed-item""><a href=""{baseUrl}/feeds/all.atom"">Audio Atom</a><button class=""copy-btn"" onclick=""copyUrl('{baseUrl}/feeds/all.atom', this)"">📋</button></div>
+            <div class=""feed-item""><a href=""{baseUrl}/feeds/all-video.rss"" class=""video"">Video RSS</a><button class=""copy-btn"" onclick=""copyUrl('{baseUrl}/feeds/all-video.rss', this)"">📋</button></div>
             <a href="""" class=""refresh"" onclick=""refreshAll(); return false;"">🔄 Refresh All</a>
         </div>
     </div>
@@ -105,12 +120,12 @@ public class FeedsController : ControllerBase
             var episodeCount = await _episodeRepository.CountByChannelIdAsync(channel.Id);
             html += $@"
     <div class=""channel"" id=""channel-{channel.Id}"">
-        <h3>{EscapeHtml(channel.Title)} <span class=""episode-count"">({episodeCount} episodes)</span></h3>
+        <h3>{EscapeHtml(channel.Title)} <span class=""episode-count"">({episodeCount})</span></h3>
         <div class=""feed-links"">
-            <a href=""{baseUrl}/feed/{channel.Id}/audio.rss"">Audio RSS</a>
-            <a href=""{baseUrl}/feed/{channel.Id}/atom.xml"">Audio Atom</a>
-            <a href=""{baseUrl}/feed/{channel.Id}/video.rss"" class=""video"">Video RSS</a>
-            <a href="""" class=""refresh"" onclick=""refreshChannel('{channel.Id}'); return false;"">🔄 Refresh</a>
+            <div class=""feed-item""><a href=""{baseUrl}/feed/{channel.Id}/audio.rss"">Audio RSS</a><button class=""copy-btn"" onclick=""copyUrl('{baseUrl}/feed/{channel.Id}/audio.rss', this)"">📋</button></div>
+            <div class=""feed-item""><a href=""{baseUrl}/feed/{channel.Id}/atom.xml"">Audio Atom</a><button class=""copy-btn"" onclick=""copyUrl('{baseUrl}/feed/{channel.Id}/atom.xml', this)"">📋</button></div>
+            <div class=""feed-item""><a href=""{baseUrl}/feed/{channel.Id}/video.rss"" class=""video"">Video RSS</a><button class=""copy-btn"" onclick=""copyUrl('{baseUrl}/feed/{channel.Id}/video.rss', this)"">📋</button></div>
+            <a href="""" class=""refresh"" onclick=""refreshChannel('{channel.Id}'); return false;"">🔄</a>
         </div>
     </div>
 ";
@@ -127,16 +142,29 @@ public class FeedsController : ControllerBase
             setTimeout(() => { toast.className = 'toast'; }, 3000);
         }
 
+        function copyUrl(url, btn) {
+            navigator.clipboard.writeText(url).then(() => {
+                btn.textContent = '✓';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.textContent = '📋';
+                    btn.classList.remove('copied');
+                }, 1500);
+            }).catch(() => {
+                showToast('Failed to copy', false);
+            });
+        }
+
         function refreshChannel(channelId) {
             fetch('/api/v1/channels/' + channelId + '/refresh', { method: 'POST' })
-                .then(response => response.ok ? showToast('Channel refresh started', true) : showToast('Failed to refresh channel', false))
-                .catch(() => showToast('Error refreshing channel', false));
+                .then(response => response.ok ? showToast('Refresh started', true) : showToast('Failed to refresh', false))
+                .catch(() => showToast('Error refreshing', false));
         }
 
         function refreshAll() {
             fetch('/api/v1/refresh', { method: 'POST' })
-                .then(response => response.ok ? showToast('Refresh all channels started', true) : showToast('Failed to refresh', false))
-                .catch(() => showToast('Error refreshing channels', false));
+                .then(response => response.ok ? showToast('Refreshing all channels', true) : showToast('Failed to refresh', false))
+                .catch(() => showToast('Error refreshing', false));
         }
 
         document.getElementById('addChannelForm').addEventListener('submit', function(e) {
@@ -152,7 +180,7 @@ public class FeedsController : ControllerBase
             .then(response => {
                 if (response.ok) {
                     statusDiv.className = 'status success';
-                    statusDiv.textContent = 'Channel added successfully! Refreshing...';
+                    statusDiv.textContent = 'Channel added! Refreshing...';
                     statusDiv.style.display = 'block';
                     setTimeout(() => location.reload(), 1500);
                 } else {
