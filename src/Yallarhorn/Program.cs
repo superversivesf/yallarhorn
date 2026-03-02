@@ -89,6 +89,21 @@ foreach (var kv in allServerKeys.OrderBy(x => x.Key))
     Console.WriteLine($"  {kv.Key} = {kv.Value}");
 }
 
+// Debug: show ALL keys to see if YAML keys are different
+var allKeys = builder.Configuration.AsEnumerable()
+    .Where(kv => kv.Value != null)
+    .OrderBy(x => x.Key)
+    .ToList();
+Console.WriteLine($"[DEBUG] ALL config keys (count={allKeys.Count}):");
+foreach (var kv in allKeys.Take(50)) // First 50 to avoid spam
+{
+    Console.WriteLine($"  {kv.Key} = {kv.Value}");
+}
+if (allKeys.Count > 50)
+{
+    Console.WriteLine($"  ... and {allKeys.Count - 50} more keys");
+}
+
 // Add Serilog logging
 builder.AddYallarhornLogging();
 
