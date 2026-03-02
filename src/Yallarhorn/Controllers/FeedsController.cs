@@ -48,7 +48,9 @@ public class FeedsController : ControllerBase
         body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 900px; margin: 0 auto; padding: 15px; }}
         h1 {{ color: #333; font-size: 1.5rem; margin-bottom: 10px; }}
         h2 {{ color: #666; margin-top: 25px; font-size: 1.1rem; }}
-        .channel {{ background: #f5f5f5; padding: 12px; margin: 8px 0; border-radius: 8px; }}
+        .channel {{ background: #f5f5f5; padding: 12px; margin: 8px 0; border-radius: 8px; display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; }}
+        .channel-thumb {{ width: 48px; height: 48px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }}
+        .channel-content {{ flex: 1; min-width: 0; }}
         .channel h3 {{ margin: 0 0 5px 0; color: #444; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 1rem; }}
         .episode-count {{ font-size: 0.85rem; color: #888; font-weight: normal; }}
         .feed-links {{ display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; align-items: center; }}
@@ -103,9 +105,27 @@ public class FeedsController : ControllerBase
                 <label for=""channelUrl"">YouTube Channel URL</label>
                 <input type=""text"" id=""channelUrl"" name=""url"" placeholder=""https://www.youtube.com/@ChannelName"" required />
             </div>
+            <div class=""form-group"">
+                <label for=""channelTitle"">Title (Optional)</label>
+                <input type=""text"" id=""channelTitle"" name=""title"" placeholder=""Custom title override"" />
+            </div>
             <div class=""form-group"" style=""min-width: 120px; max-width: 180px;"">
                 <label for=""episodeCount"">Episodes to Download</label>
                 <input type=""number"" id=""episodeCount"" name=""episodeCount"" min=""1"" max=""100"" value=""3"" required />
+            </div>
+            <div class=""form-group"" style=""min-width: 120px; max-width: 150px;"">
+                <label for=""feedType"">Feed Type</label>
+                <select id=""feedType"" name=""feedType"" style=""padding: 10px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem;"">
+                    <option value=""video"" selected>Video</option>
+                    <option value=""audio"">Audio</option>
+                    <option value=""both"">Both</option>
+                </select>
+            </div>
+            <div class=""form-group"" style=""min-width: 120px; max-width: 150px;"">
+                <label for=""enabled"">Enabled</label>
+                <div style=""display: flex; align-items: center; height: 42px;"">
+                    <input type=""checkbox"" id=""enabled"" name=""enabled"" checked style=""transform: scale(1.5);"" />
+                </div>
             </div>
             <button type=""submit"">Add</button>
         </form>
@@ -124,7 +144,7 @@ public class FeedsController : ControllerBase
         <p>Subscribe to all channels:</p>
         <div class=""feed-links"">
             <div class=""feed-item""><a href=""{baseUrl}/feeds/all.atom"">Atom</a><button class=""copy-btn"" onclick=""copyUrl('{baseUrl}/feeds/all.atom', this)"">📋</button></div>
-            <div class=""feed-item""><a href=""{baseUrl}/feeds/all-video.rss"" class=""video"">Video RSS</a><button class=""copy-btn"" onclick=""copyUrl('{baseUrl}/feeds/all-video.rss', this)"">📋</button></div>
+            <div class=""feed-item""><a href=""{baseUrl}/feeds/all-video.rss"" class=""video"">RSS</a><button class=""copy-btn"" onclick=""copyUrl('{baseUrl}/feeds/all-video.rss', this)"">📋</button></div>
             <a href="""" class=""refresh"" onclick=""refreshAll(); return false;"">🔄 Refresh All</a>
         </div>
     </div>
@@ -135,14 +155,20 @@ public class FeedsController : ControllerBase
         foreach (var channel in channels.OrderBy(c => c.Title))
         {
             var episodeCount = await _episodeRepository.CountByChannelIdAsync(channel.Id);
+            var thumbnailHtml = !string.IsNullOrEmpty(channel.ThumbnailUrl)
+                ? $"<img src=\"{EscapeHtml(channel.ThumbnailUrl)}\" alt=\"{EscapeHtml(channel.Title)}\" class=\"channel-thumb\" onerror=\"this.style.display='none'\" />"
+                : "";
             html += $@"
     <div class=""channel"" id=""channel-{channel.Id}"">
-        <h3>{EscapeHtml(channel.Title)} <span class=""episode-count"">({episodeCount})</span></h3>
-        <div class=""feed-links"">
-            <div class=""feed-item""><a href=""{baseUrl}/feed/{channel.Id}/atom.xml"">Atom</a><button class=""copy-btn"" onclick=""copyUrl('{baseUrl}/feed/{channel.Id}/atom.xml', this)"">📋</button></div>
-            <div class=""feed-item""><a href=""{baseUrl}/feed/{channel.Id}/video.rss"" class=""video"">Video RSS</a><button class=""copy-btn"" onclick=""copyUrl('{baseUrl}/feed/{channel.Id}/video.rss', this)"">📋</button></div>
-            <a href="""" class=""refresh"" onclick=""refreshChannel('{channel.Id}'); return false;"">🔄</a>
-            <a href="""" class=""delete-btn"" onclick=""deleteChannel('{channel.Id}', this); return false;"">🗑️</a>
+        {thumbnailHtml}
+        <div class=""channel-content"">
+            <h3>{EscapeHtml(channel.Title)} <span class=""episode-count"">({episodeCount})</span></h3>
+            <div class=""feed-links"">
+                <div class=""feed-item""><a href=""{baseUrl}/feed/{channel.Id}/atom.xml"">Atom</a><button class=""copy-btn"" onclick=""copyUrl('{baseUrl}/feed/{channel.Id}/atom.xml', this)"">📋</button></div>
+                <div class=""feed-item""><a href=""{baseUrl}/feed/{channel.Id}/video.rss"" class=""video"">RSS</a><button class=""copy-btn"" onclick=""copyUrl('{baseUrl}/feed/{channel.Id}/video.rss', this)"">📋</button></div>
+                <a href="""" class=""refresh"" onclick=""refreshChannel('{channel.Id}'); return false;"">🔄</a>
+                <a href="""" class=""delete-btn"" onclick=""deleteChannel('{channel.Id}', this); return false;"">🗑️</a>
+            </div>
         </div>
     </div>
 ";
@@ -237,13 +263,27 @@ public class FeedsController : ControllerBase
         document.getElementById('addChannelForm').addEventListener('submit', function(e) {
             e.preventDefault();
             const url = document.getElementById('channelUrl').value;
+            const title = document.getElementById('channelTitle').value || null;
             const episodeCount = parseInt(document.getElementById('episodeCount').value) || 3;
+            const feedType = document.getElementById('feedType').value;
+            const enabled = document.getElementById('enabled').checked;
             const statusDiv = document.getElementById('addStatus');
+            
+            const requestBody = {
+                url: url,
+                episode_count_config: episodeCount,
+                feed_type: feedType,
+                enabled: enabled
+            };
+            
+            if (title) {
+                requestBody.title = title;
+            }
             
             fetch('/api/v1/channels', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url: url, episode_count_config: episodeCount, feed_type: 'both', enabled: true })
+                body: JSON.stringify(requestBody)
             })
             .then(response => {
                 if (response.ok) {

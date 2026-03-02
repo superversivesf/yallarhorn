@@ -104,11 +104,17 @@ public class RssFeedBuilder : IRssFeedBuilder
         WriteITunesElement(writer, "email", $"contact@{SanitizeEmail(channel.Title)}.com");
         writer.WriteEndElement();
 
+        // Build base media URL for images and enclosures
+        var baseMediaUrl = string.IsNullOrEmpty(feedPath)
+            ? baseUrl.TrimEnd('/')
+            : $"{baseUrl.TrimEnd('/')}/{feedPath.TrimStart('/').TrimEnd('/')}";
+
         // iTunes image
         if (!string.IsNullOrEmpty(channel.ThumbnailUrl))
         {
+            var imageUrl = GetAbsoluteUrl(channel.ThumbnailUrl, baseMediaUrl);
             writer.WriteStartElement("itunes", "image", ITunesNamespace);
-            writer.WriteAttributeString("href", channel.ThumbnailUrl);
+            writer.WriteAttributeString("href", imageUrl);
             writer.WriteEndElement();
         }
 
@@ -118,7 +124,7 @@ public class RssFeedBuilder : IRssFeedBuilder
 
         foreach (var episode in filteredEpisodes)
         {
-            WriteItem(writer, channel, episode, feedType, baseUrl, feedPath);
+            WriteItem(writer, channel, episode, feedType, baseMediaUrl);
         }
 
         writer.WriteEndElement(); // channel
@@ -139,7 +145,7 @@ public class RssFeedBuilder : IRssFeedBuilder
         };
     }
 
-    private void WriteItem(XmlWriter writer, Channel channel, Episode episode, FeedType feedType, string baseUrl, string feedPath)
+    private void WriteItem(XmlWriter writer, Channel channel, Episode episode, FeedType feedType, string baseMediaUrl)
     {
         writer.WriteStartElement("item");
 
@@ -161,7 +167,7 @@ public class RssFeedBuilder : IRssFeedBuilder
         }
 
         // Enclosure
-        var enclosure = GetEnclosure(episode, feedType, baseUrl, feedPath);
+        var enclosure = GetEnclosure(episode, feedType, baseMediaUrl);
         if (enclosure != null)
         {
             writer.WriteStartElement("enclosure");
@@ -185,8 +191,9 @@ public class RssFeedBuilder : IRssFeedBuilder
         // Image
         if (!string.IsNullOrEmpty(episode.ThumbnailUrl))
         {
+            var imageUrl = GetAbsoluteUrl(episode.ThumbnailUrl, baseMediaUrl);
             writer.WriteStartElement("itunes", "image", ITunesNamespace);
-            writer.WriteAttributeString("href", episode.ThumbnailUrl);
+            writer.WriteAttributeString("href", imageUrl);
             writer.WriteEndElement();
         }
 
@@ -198,13 +205,8 @@ public class RssFeedBuilder : IRssFeedBuilder
         writer.WriteEndElement(); // item
     }
 
-    private static RssEnclosure? GetEnclosure(Episode episode, FeedType feedType, string baseUrl, string feedPath)
+    private static RssEnclosure? GetEnclosure(Episode episode, FeedType feedType, string baseMediaUrl)
     {
-        // Build the base URL including feedPath
-        var baseMediaUrl = string.IsNullOrEmpty(feedPath) 
-            ? baseUrl.TrimEnd('/') 
-            : $"{baseUrl.TrimEnd('/')}/{feedPath.TrimStart('/').TrimEnd('/')}";
-
         // For audio feeds, use audio file
         if (feedType == FeedType.Audio || feedType == FeedType.Both)
         {
@@ -269,6 +271,19 @@ public class RssFeedBuilder : IRssFeedBuilder
         return MimeTypes.TryGetValue(extension, out var mimeType)
             ? mimeType
             : "application/octet-stream";
+    }
+
+    /// <summary>
+    /// Builds an absolute URL from a relative or absolute URL.
+    /// </summary>
+    /// <param name="url">The URL to process.</param>
+    /// <param name="baseMediaUrl">The base media URL to prepend for relative URLs.</param>
+    /// <returns>An absolute URL or empty string if URL is null/empty.</returns>
+    private static string GetAbsoluteUrl(string? url, string baseMediaUrl)
+    {
+        if (string.IsNullOrEmpty(url)) return string.Empty;
+        if (url.StartsWith("http")) return url;
+        return $"{baseMediaUrl}/{url.TrimStart('/')}";
     }
 
     /// <summary>
