@@ -18,7 +18,7 @@ public class AtomFeedBuilderTests
     public AtomFeedBuilderTests()
     {
         _versionServiceMock = new Mock<IVersionService>();
-        _versionServiceMock.Setup(v => v.GetVersion()).Returns("1.0.0-rc1");
+        _versionServiceMock.Setup(v => v.GetVersion()).Returns("1.0.0-rc2");
         _builder = new AtomFeedBuilder(_versionServiceMock.Object);
     }
 
@@ -706,7 +706,7 @@ public class AtomFeedBuilderTests
         var generatorElement = doc.Root?.Element(ns + "generator");
         generatorElement.Should().NotBeNull();
         generatorElement?.Value.Should().Be("Yallarhorn");
-        generatorElement?.Attribute("version")?.Value.Should().Be("1.0.0-rc1");
+        generatorElement?.Attribute("version")?.Value.Should().Be("1.0.0-rc2");
         generatorElement?.Attribute("uri")?.Value.Should().Be("https://github.com/jason/yallarhorn");
     }
 

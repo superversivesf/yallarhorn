@@ -3,6 +3,7 @@ namespace Yallarhorn.Controllers;
 using Microsoft.AspNetCore.Mvc;
 using Yallarhorn.Data.Enums;
 using Yallarhorn.Data.Repositories;
+using Yallarhorn.Services;
 
 /// <summary>
 /// Controller for serving a simple feed index page.
@@ -12,14 +13,16 @@ public class FeedsController : ControllerBase
 {
     private readonly IChannelRepository _channelRepository;
     private readonly IEpisodeRepository _episodeRepository;
+    private readonly IVersionService _versionService;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="FeedsController"/> class.
     /// </summary>
-    public FeedsController(IChannelRepository channelRepository, IEpisodeRepository episodeRepository)
+    public FeedsController(IChannelRepository channelRepository, IEpisodeRepository episodeRepository, IVersionService versionService)
     {
         _channelRepository = channelRepository;
         _episodeRepository = episodeRepository;
+        _versionService = versionService;
     }
 
     /// <summary>
@@ -32,6 +35,7 @@ public class FeedsController : ControllerBase
     {
         var channels = await _channelRepository.GetAllAsync();
         var baseUrl = $"{Request.Scheme}://{Request.Host}";
+        var version = _versionService.GetVersion();
 
         var html = $@"<!DOCTYPE html>
 <html>
@@ -90,7 +94,7 @@ public class FeedsController : ControllerBase
     </style>
 </head>
 <body>
-    <h1>🎙️ Yallarhorn Feeds</h1>
+    <h1>🎙️ Yallarhorn Feeds [{version}]</h1>
 
     <div class=""add-channel"">
         <h2>➕ Add New Channel</h2>
