@@ -18,6 +18,16 @@ HEALTH_CHECK_INTERVAL=2
 echo -e "${YELLOW}=== Yallarhorn Deployment Script ===${NC}"
 echo -e "${YELLOW}(Preserving data volumes)${NC}\n"
 
+# Check for .env file
+if [ ! -f .env ]; then
+    echo -e "${YELLOW}No .env file found, creating from .env.example${NC}"
+    if [ -f .env.example ]; then
+        cp .env.example .env
+        echo -e "${GREEN}✓ Created .env file${NC}"
+        echo -e "${YELLOW}NOTE: Edit .env to configure storage paths (especially YALLARHORN_DOWNLOADS_DIR)${NC}\n"
+    fi
+fi
+
 # Step 1: Stop and remove current containers (preserve volumes)
 echo -e "${YELLOW}[1/4] Stopping containers...${NC}"
 docker compose down

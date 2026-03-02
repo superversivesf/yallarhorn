@@ -1,5 +1,11 @@
 # Docker Compose for Yallarhorn Podcast Server
 # Production configuration - use docker-compose.override.yml for development
+#
+# STORAGE CONFIGURATION:
+# Copy .env.example to .env and customize paths for your system
+# - YALLARHORN_DATA_DIR: SQLite database location
+# - YALLARHORN_DOWNLOADS_DIR: Downloaded videos/audio (put on bulk storage!)
+# - YALLARHORN_TEMP_DIR: Temporary processing files
 
 services:
   app:
@@ -14,14 +20,14 @@ services:
       - "5001:5001"
     
     volumes:
-      # Data persistence for SQLite database and downloads
-      - yallarhorn-data:/app/data
       # Configuration file (read-only)
       - ./yallarhorn.yaml:/app/yallarhorn.yaml:ro
-      # Downloads directory persistence
-      - yallarhorn-downloads:/app/downloads
-      # Temp directory (can be ephemeral)
-      - yallarhorn-temp:/app/temp
+      # Data directory - SQLite database
+      - ${YALLARHORN_DATA_DIR:-./data}:/app/data
+      # Downloads directory - PUT THIS ON BULK STORAGE
+      - ${YALLARHORN_DOWNLOADS_DIR:-./downloads}:/app/downloads
+      # Temp directory for processing
+      - ${YALLARHORN_TEMP_DIR:-./temp}:/app/temp
     
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
@@ -44,11 +50,3 @@ services:
 networks:
   yallarhorn-network:
     driver: bridge
-
-volumes:
-  yallarhorn-data:
-    name: yallarhorn-data
-  yallarhorn-downloads:
-    name: yallarhorn-downloads
-  yallarhorn-temp:
-    name: yallarhorn-temp
