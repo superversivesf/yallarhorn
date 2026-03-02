@@ -171,14 +171,14 @@ public class ChannelRefreshService : IChannelRefreshService
                     channel.Id);
             }
 
-            // Step 5: Download channel artwork (non-critical, don't fail if this fails)
+            // Step 5: Download channel avatar (non-critical, don't fail if this fails)
             try
             {
-                await DownloadChannelArtworkAsync(channel, videoList, cancellationToken);
+                await DownloadChannelArtworkAsync(channel, cancellationToken);
             }
             catch (Exception ex)
             {
-                _logger?.LogWarning(ex, "Failed to download channel artwork for {ChannelId}", channel.Id);
+                _logger?.LogWarning(ex, "Failed to download channel avatar for {ChannelId}", channel.Id);
             }
 
             // Step 6: Update channel's last_refresh_at timestamp
@@ -297,62 +297,79 @@ public class ChannelRefreshService : IChannelRefreshService
     }
 
     /// <summary>
-    /// Downloads channel artwork (thumbnail) from the first video's thumbnail.
+    /// Downloads channel avatar from YouTube.
     /// </summary>
     private async Task DownloadChannelArtworkAsync(
         Channel channel,
-        IReadOnlyList<YtDlpMetadata> videos,
         CancellationToken cancellationToken)
     {
-        // Only download if channel doesn't have a local thumbnail
         if (!string.IsNullOrEmpty(channel.ThumbnailUrl) && 
             !channel.ThumbnailUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase))
         {
-            // Already has local thumbnail
-            return;
-        }
-
-        // Get the best thumbnail URL from the channel or first video
-        var thumbnailUrl = channel.ThumbnailUrl;
-        if (string.IsNullOrEmpty(thumbnailUrl) && videos.Count > 0)
-        {
-            // Use first video's thumbnail as fallback
-            thumbnailUrl = videos[0].Thumbnail;
-        }
-
-        if (string.IsNullOrEmpty(thumbnailUrl))
-        {
-            _logger?.LogDebug("No thumbnail URL available for channel {ChannelId}", channel.Id);
             return;
         }
 
         try
         {
-            // Create thumbnails directory for the channel
+            var avatarUrl = await GetChannelAvatarUrlAsync(channel.Url, cancellationToken);
+
+            if (string.IsNullOrEmpty(avatarUrl))
+            {
+                _logger?.LogDebug("No avatar URL found for channel {ChannelId}", channel.Id);
+                return;
+            }
+
             var thumbnailDir = Path.Combine(_downloadDirectory, channel.Id, "thumbnails");
             if (!Directory.Exists(thumbnailDir))
             {
                 Directory.CreateDirectory(thumbnailDir);
             }
 
-            // Download the thumbnail
-            var thumbnailPath = await _ytDlpClient.DownloadThumbnailAsync(
-                videos[0].Id,
-                thumbnailDir,
-                cancellationToken);
+            var fileName = $"channel_avatar{Path.GetExtension(new Uri(avatarUrl).AbsolutePath)}";
+            var thumbnailPath = Path.Combine(thumbnailDir, fileName);
 
-            if (thumbnailPath != null)
-            {
-                // Store relative path
-                var relativePath = Path.GetRelativePath(_downloadDirectory, thumbnailPath);
-                channel.ThumbnailUrl = relativePath;
-                _logger?.LogInformation("Downloaded channel artwork for {ChannelId}: {Path}", channel.Id, relativePath);
-            }
+            using var httpClient = new HttpClient();
+            httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
+            var imageBytes = await httpClient.GetByteArrayAsync(avatarUrl, cancellationToken);
+            await File.WriteAllBytesAsync(thumbnailPath, imageBytes, cancellationToken);
+
+            var relativePath = Path.GetRelativePath(_downloadDirectory, thumbnailPath);
+            channel.ThumbnailUrl = relativePath;
+            _logger?.LogInformation("Downloaded channel avatar for {ChannelId}: {Path}", channel.Id, relativePath);
         }
         catch (Exception ex)
         {
-            // Non-critical failure - log and continue
-            _logger?.LogWarning(ex, "Failed to download channel artwork for {ChannelId}", channel.Id);
+            _logger?.LogWarning(ex, "Failed to download channel avatar for {ChannelId}", channel.Id);
         }
+    }
+
+    /// <summary>
+    /// Gets the channel avatar URL by scraping the channel page.
+    /// </summary>
+    private static async Task<string?> GetChannelAvatarUrlAsync(string channelUrl, CancellationToken cancellationToken)
+    {
+        using var httpClient = new HttpClient();
+        httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
+
+        var html = await httpClient.GetStringAsync(channelUrl, cancellationToken);
+
+        var patterns = new[]
+        {
+            @"""avatar"":\s*{[^}]*""thumbnails"":\s*\[\s*{[^}]*""url"":\s*""([^""]+)""",
+            @"""thumbnail"":\s*{[^}]*""thumbnails"":\s*\[\s*{[^}]*""url"":\s*""([^""]+)""",
+            @"data-thumb=""([^""]+)""",
+            @"<img[^>]+class=""[^""]*channel-avatar[^""]*""[^>]+src=""([^""]+)""",
+        };
+
+        foreach (var pattern in patterns)
+        {
+            var match = System.Text.RegularExpressions.Regex.Match(html, pattern);
+            if (match.Success && !string.IsNullOrEmpty(match.Groups[1].Value))
+            {
+                return match.Groups[1].Value.Replace(@"\u002F", "/");
+            }
+        }
+
+        return null;
     }
 }

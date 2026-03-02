@@ -3,6 +3,84 @@ namespace Yallarhorn.Models;
 using System.Text.Json.Serialization;
 
 /// <summary>
+/// Represents channel metadata extracted from yt-dlp JSON output.
+/// </summary>
+public class YtDlpChannelMetadata
+{
+    /// <summary>
+    /// The channel ID.
+    /// </summary>
+    [JsonPropertyName("id")]
+    public string Id { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The channel name/title.
+    /// </summary>
+    [JsonPropertyName("title")]
+    public string? Title { get; set; }
+
+    /// <summary>
+    /// The channel description.
+    /// </summary>
+    [JsonPropertyName("description")]
+    public string? Description { get; set; }
+
+    /// <summary>
+    /// The channel avatar/thumbnail URL.
+    /// </summary>
+    [JsonPropertyName("thumbnail")]
+    public string? Thumbnail { get; set; }
+
+    /// <summary>
+    /// The channel URL.
+    /// </summary>
+    [JsonPropertyName("url")]
+    public string? Url { get; set; }
+
+    /// <summary>
+    /// Channel banners (may contain multiple sizes).
+    /// </summary>
+    [JsonPropertyName("banners")]
+    public List<string>? Banners { get; set; }
+
+    /// <summary>
+    /// Avatars in various sizes.
+    /// </summary>
+    [JsonPropertyName("avatars")]
+    public List<YtDlpThumbnail>? Avatars { get; set; }
+
+    /// <summary>
+    /// Thumbnails in various sizes.
+    /// </summary>
+    [JsonPropertyName("thumbnails")]
+    public List<YtDlpThumbnail>? Thumbnails { get; set; }
+}
+
+/// <summary>
+/// Represents a thumbnail with URL and dimensions.
+/// </summary>
+public class YtDlpThumbnail
+{
+    /// <summary>
+    /// The thumbnail URL.
+    /// </summary>
+    [JsonPropertyName("url")]
+    public string? Url { get; set; }
+
+    /// <summary>
+    /// The thumbnail width in pixels.
+    /// </summary>
+    [JsonPropertyName("width")]
+    public int? Width { get; set; }
+
+    /// <summary>
+    /// The thumbnail height in pixels.
+    /// </summary>
+    [JsonPropertyName("height")]
+    public int? Height { get; set; }
+}
+
+/// <summary>
 /// Represents video metadata extracted from yt-dlp JSON output.
 /// </summary>
 public class YtDlpMetadata
