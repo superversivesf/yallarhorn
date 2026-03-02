@@ -73,9 +73,7 @@ if (configFound && !string.IsNullOrEmpty(configPath))
     // The built-in FileProvider is rooted at content root and can't handle absolute paths
     if (Path.IsPathRooted(configPath))
     {
-        Console.WriteLine($"[DEBUG] Loading YAML from absolute path: {configPath}");
         var yamlContent = File.ReadAllText(configPath);
-        Console.WriteLine($"[DEBUG] YAML content length: {yamlContent.Length} chars");
         
         // Parse YAML directly and add as in-memory collection
         var yaml = new YamlDotNet.RepresentationModel.YamlStream();
@@ -87,12 +85,6 @@ if (configFound && !string.IsNullOrEmpty(configPath))
             FlattenYaml(mapping, string.Empty, data);
         }
         
-        Console.WriteLine($"[DEBUG] Parsed {data.Count} keys from YAML:");
-        foreach (var kv in data.Take(10))
-        {
-            Console.WriteLine($"  {kv.Key} = {kv.Value}");
-        }
-        
         builder.Configuration.AddInMemoryCollection(data);
     }
     else
@@ -102,34 +94,7 @@ if (configFound && !string.IsNullOrEmpty(configPath))
 }
 else
 {
-    // Log warning - no configuration file found but app can still start
     Console.WriteLine("Warning: No configuration file found. Using defaults.");
-    Console.WriteLine("  Searched: --config argument, /app/yallarhorn.yaml, ./yallarhorn.yaml");
-}
-
-// Debug: show all Server:* config keys before binding
-var allServerKeys = builder.Configuration.AsEnumerable()
-    .Where(kv => kv.Key.StartsWith("Server:", StringComparison.OrdinalIgnoreCase) && kv.Value != null)
-    .ToList();
-Console.WriteLine($"[DEBUG] Server keys from config (count={allServerKeys.Count}):");
-foreach (var kv in allServerKeys.OrderBy(x => x.Key))
-{
-    Console.WriteLine($"  {kv.Key} = {kv.Value}");
-}
-
-// Debug: show ALL keys to see if YAML keys are different
-var allKeys = builder.Configuration.AsEnumerable()
-    .Where(kv => kv.Value != null)
-    .OrderBy(x => x.Key)
-    .ToList();
-Console.WriteLine($"[DEBUG] ALL config keys (count={allKeys.Count}):");
-foreach (var kv in allKeys.Take(50)) // First 50 to avoid spam
-{
-    Console.WriteLine($"  {kv.Key} = {kv.Value}");
-}
-if (allKeys.Count > 50)
-{
-    Console.WriteLine($"  ... and {allKeys.Count - 50} more keys");
 }
 
 // Add Serilog logging

@@ -71,17 +71,6 @@ public class YamlConfigurationProvider : ConfigurationProvider
             }
         }
 
-        // DEBUG: Show what YAML produced
-        Console.WriteLine($"[DEBUG YAML] Provider loaded {data.Count} keys:");
-        foreach (var kv in data.OrderBy(x => x.Key).Take(30))
-        {
-            Console.WriteLine($"  {kv.Key} = {kv.Value}");
-        }
-        if (data.Count > 30)
-        {
-            Console.WriteLine($"  ... and {data.Count - 30} more keys");
-        }
-
         Data = data;
     }
 
