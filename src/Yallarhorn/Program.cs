@@ -69,8 +69,36 @@ else
 
 if (configFound && !string.IsNullOrEmpty(configPath))
 {
-    builder.Configuration.AddYamlFile(configPath, optional: true);
-    Console.WriteLine($"[DEBUG] Loading YAML config from: {configPath}");
+    // For absolute paths, read the file directly without using FileProvider
+    // The built-in FileProvider is rooted at content root and can't handle absolute paths
+    if (Path.IsPathRooted(configPath))
+    {
+        Console.WriteLine($"[DEBUG] Loading YAML from absolute path: {configPath}");
+        var yamlContent = File.ReadAllText(configPath);
+        Console.WriteLine($"[DEBUG] YAML content length: {yamlContent.Length} chars");
+        
+        // Parse YAML directly and add as in-memory collection
+        var yaml = new YamlDotNet.RepresentationModel.YamlStream();
+        yaml.Load(new StringReader(yamlContent));
+        
+        var data = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+        if (yaml.Documents.Count > 0 && yaml.Documents[0].RootNode is YamlDotNet.RepresentationModel.YamlMappingNode mapping)
+        {
+            FlattenYaml(mapping, string.Empty, data);
+        }
+        
+        Console.WriteLine($"[DEBUG] Parsed {data.Count} keys from YAML:");
+        foreach (var kv in data.Take(10))
+        {
+            Console.WriteLine($"  {kv.Key} = {kv.Value}");
+        }
+        
+        builder.Configuration.AddInMemoryCollection(data);
+    }
+    else
+    {
+        builder.Configuration.AddYamlFile(configPath, optional: true);
+    }
 }
 else
 {
@@ -184,6 +212,48 @@ app.MapGet("/", () => Results.Redirect("/scalar/v1"))
    .WithName("Home");
 
 app.Run();
+
+// Helper method to flatten YAML into config keys
+static void FlattenYaml(YamlDotNet.RepresentationModel.YamlMappingNode node, string prefix, Dictionary<string, string?> data)
+{
+    foreach (var entry in node.Children)
+    {
+        var key = entry.Key.ToString() ?? "";
+        var fullKey = string.IsNullOrEmpty(prefix) ? key : $"{prefix}:{key}";
+
+        switch (entry.Value)
+        {
+            case YamlDotNet.RepresentationModel.YamlMappingNode mapping:
+                FlattenYaml(mapping, fullKey, data);
+                break;
+            case YamlDotNet.RepresentationModel.YamlSequenceNode sequence:
+                for (var i = 0; i < sequence.Children.Count; i++)
+                {
+                    var itemKey = $"{fullKey}:{i}";
+                    var item = sequence.Children[i];
+                    switch (item)
+                    {
+                        case YamlDotNet.RepresentationModel.YamlMappingNode itemMapping:
+                            FlattenYaml(itemMapping, itemKey, data);
+                            break;
+                        case YamlDotNet.RepresentationModel.YamlScalarNode itemScalar:
+                            data[itemKey] = itemScalar.Value;
+                            break;
+                        default:
+                            data[itemKey] = item?.ToString();
+                            break;
+                    }
+                }
+                break;
+            case YamlDotNet.RepresentationModel.YamlScalarNode scalar:
+                data[fullKey] = scalar.Value;
+                break;
+            default:
+                data[fullKey] = entry.Value?.ToString();
+                break;
+        }
+    }
+}
 
 // Make Program accessible for integration tests
 /// <summary>
