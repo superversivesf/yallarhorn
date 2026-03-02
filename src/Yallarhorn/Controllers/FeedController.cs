@@ -55,7 +55,8 @@ public class FeedController : ControllerBase
     private static readonly Dictionary<string, string[]> ValidExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
         ["audio"] = new[] { ".mp3", ".m4a", ".aac", ".ogg", ".wav" },
-        ["video"] = new[] { ".mp4", ".webm", ".m4v" }
+        ["video"] = new[] { ".mp4", ".webm", ".m4v" },
+        ["thumbnails"] = new[] { ".webp", ".jpg", ".jpeg", ".png" }
     };
 
     /// <summary>
@@ -70,7 +71,11 @@ public class FeedController : ControllerBase
         [".wav"] = "audio/wav",
         [".mp4"] = "video/mp4",
         [".webm"] = "video/webm",
-        [".m4v"] = "video/mp4"
+        [".m4v"] = "video/mp4",
+        [".webp"] = "image/webp",
+        [".jpg"] = "image/jpeg",
+        [".jpeg"] = "image/jpeg",
+        [".png"] = "image/png"
     };
 
     /// <summary>
