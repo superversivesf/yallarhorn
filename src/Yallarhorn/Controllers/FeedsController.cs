@@ -207,7 +207,7 @@ public class FeedsController : ControllerBase
         }
 
         function refreshAll() {
-            fetch('/api/v1/refresh', { method: 'POST' })
+            fetch('/api/v1/refresh-all', { method: 'POST' })
                 .then(response => response.ok ? showToast('Refreshing all channels', true) : showToast('Failed to refresh', false))
                 .catch(() => showToast('Error refreshing', false));
         }

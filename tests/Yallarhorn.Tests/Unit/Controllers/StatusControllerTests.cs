@@ -33,7 +33,7 @@ public class StatusControllerTests : IDisposable
         _versionServiceMock = new Mock<IVersionService>();
         _loggerMock = new Mock<ILogger<StatusController>>();
 
-        _versionServiceMock.Setup(v => v.GetVersion()).Returns("1.0.0-rc2");
+        _versionServiceMock.Setup(v => v.GetVersion()).Returns("1.0.0-rc3");
 
         _controller = new StatusController(
             _queueRepositoryMock.Object,

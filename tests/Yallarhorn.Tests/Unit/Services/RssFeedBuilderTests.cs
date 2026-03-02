@@ -19,7 +19,7 @@ public class RssFeedBuilderTests
     public RssFeedBuilderTests()
     {
         _versionServiceMock = new Mock<IVersionService>();
-        _versionServiceMock.Setup(v => v.GetVersion()).Returns("1.0.0-rc2");
+        _versionServiceMock.Setup(v => v.GetVersion()).Returns("1.0.0-rc3");
         _builder = new RssFeedBuilder(_versionServiceMock.Object);
     }
 
@@ -910,7 +910,7 @@ public class RssFeedBuilderTests
         var result = _builder.BuildRssFeed(channel, episodes, FeedType.Audio, BaseUrl, FeedPath);
 
         // Assert
-        result.Should().Contain("<generator>Yallarhorn/1.0.0-rc2</generator>");
+        result.Should().Contain("<generator>Yallarhorn/1.0.0-rc3</generator>");
     }
 
     [Fact]

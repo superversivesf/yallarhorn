@@ -92,12 +92,21 @@ public class TriggersController : ControllerBase
             });
         }
 
-        // Trigger the refresh
-        var result = await _channelRefreshService.RefreshChannelAsync(id, cancellationToken);
-
-        _logger.LogInformation(
-            "Refresh completed for channel {ChannelId}: {VideosFound} videos found, {EpisodesQueued} episodes queued",
-            id, result.VideosFound, result.EpisodesQueued);
+        // Queue the refresh to run in background (fire-and-forget)
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var result = await _channelRefreshService.RefreshChannelAsync(id);
+                _logger.LogInformation(
+                    "Background refresh completed for channel {ChannelId}: {VideosFound} videos found, {EpisodesQueued} episodes queued",
+                    id, result.VideosFound, result.EpisodesQueued);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Background refresh failed for channel {ChannelId}: {Message}", id, ex.Message);
+            }
+        });
 
         return Accepted(new RefreshChannelResponse
         {
@@ -131,16 +140,28 @@ public class TriggersController : ControllerBase
     {
         _logger.LogInformation("Manual refresh-all triggered, force: {Force}", request?.Force ?? false);
 
-        // Trigger refresh for all enabled channels
-        var results = await _channelRefreshService.RefreshAllChannelsAsync(cancellationToken);
-        var resultsList = results.ToList();
+        // Get channel count for response (quick check)
+        var channels = await _channelRepository.GetEnabledAsync(cancellationToken);
+        var channelsRefreshed = channels.Count();
 
-        var channelsRefreshed = resultsList.Count;
-        var totalEpisodesQueued = resultsList.Sum(r => r.EpisodesQueued);
-
-        _logger.LogInformation(
-            "Refresh-all completed: {ChannelsRefreshed} channels refreshed, {TotalEpisodesQueued} episodes queued",
-            channelsRefreshed, totalEpisodesQueued);
+        // Queue the refresh-all to run in background (fire-and-forget)
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var results = await _channelRefreshService.RefreshAllChannelsAsync();
+                var resultsList = results.ToList();
+                var totalEpisodesQueued = resultsList.Sum(r => r.EpisodesQueued);
+                
+                _logger.LogInformation(
+                    "Background refresh-all completed: {ChannelsRefreshed} channels refreshed, {TotalEpisodesQueued} episodes queued",
+                    resultsList.Count, totalEpisodesQueued);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Background refresh-all failed: {Message}", ex.Message);
+            }
+        });
 
         return Accepted(new RefreshAllChannelsResponse
         {
