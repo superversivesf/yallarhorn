@@ -70,8 +70,9 @@ public class YtDlpClient : IYtDlpClient
     {
         _logger.LogInformation("Fetching channel videos from: {ChannelUrl}", channelUrl);
 
-        // Note: --print-json outputs to stderr, not stdout
-        var arguments = "--flat-playlist --print-json --no-warnings";
+        // Use --flat-playlist for quick list, but we also need full metadata
+        // So we use --print-json without --flat-playlist to get timestamp and other fields
+        var arguments = "--print-json --no-warnings --no-playlist-reverse --playlist-end 100";
         var result = await ExecuteYtDlpAsync(arguments, channelUrl, cancellationToken);
 
         if (result.ExitCode != 0)
@@ -174,6 +175,62 @@ public class YtDlpClient : IYtDlpClient
 
         _logger.LogInformation("Successfully downloaded video to {OutputPath}", outputPath);
         return outputPath;
+    }
+
+    /// <inheritdoc/>
+    public async Task<string?> DownloadThumbnailAsync(
+        string videoId,
+        string outputDir,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Downloading thumbnail for video {VideoId}", videoId);
+
+        // Ensure output directory exists
+        if (!Directory.Exists(outputDir))
+        {
+            Directory.CreateDirectory(outputDir);
+        }
+
+        // Use yt-dlp to download the best quality thumbnail
+        // --write-thumbnail downloads thumbnail, --no-download skips the video
+        var arguments = $"--write-thumbnail --no-download --no-warnings -o \"{outputDir}/{videoId}.%(ext)s\" \"https://www.youtube.com/watch?v={videoId}\"";
+
+        try
+        {
+            var result = await ExecuteYtDlpAsync(arguments, $"https://www.youtube.com/watch?v={videoId}", cancellationToken);
+
+            if (result.ExitCode != 0)
+            {
+                _logger.LogWarning("Failed to download thumbnail for video {VideoId}: {Error}", videoId, result.Error);
+                return null;
+            }
+
+            // Find the downloaded thumbnail (could be .jpg, .png, .webp)
+            var files = Directory.GetFiles(outputDir, $"{videoId}.*")
+                .Where(f => f.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) ||
+                            f.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ||
+                            f.EndsWith(".webp", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            if (files.Count == 0)
+            {
+                _logger.LogWarning("No thumbnail file found for video {VideoId}", videoId);
+                return null;
+            }
+
+            // Prefer jpg, then png, then webp
+            var thumbnail = files.FirstOrDefault(f => f.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase))
+                          ?? files.FirstOrDefault(f => f.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
+                          ?? files.First();
+
+            _logger.LogInformation("Downloaded thumbnail for video {VideoId}: {Path}", videoId, thumbnail);
+            return thumbnail;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error downloading thumbnail for video {VideoId}", videoId);
+            return null;
+        }
     }
 
     private static string BuildDownloadArguments(string outputPath)

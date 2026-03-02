@@ -39,6 +39,18 @@ public interface IYtDlpClient
         string outputPath,
         Action<DownloadProgress>? progressCallback = null,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Downloads the thumbnail for a video.
+    /// </summary>
+    /// <param name="videoId">The YouTube video ID.</param>
+    /// <param name="outputPath">The output directory for the thumbnail.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The path to the downloaded thumbnail, or null if failed.</returns>
+    Task<string?> DownloadThumbnailAsync(
+        string videoId,
+        string outputPath,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>

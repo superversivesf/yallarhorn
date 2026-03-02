@@ -353,18 +353,42 @@ public class DownloadPipeline : IDownloadPipeline
                 downloadedFilePath);
         }
 
-        // Step 5: Update episode with file info
+        // Step 5: Download thumbnail
+        cancellationToken.ThrowIfCancellationRequested();
+
+        ReportProgress(progressCallback, PipelineStage.Downloading, episode.Id, null, "Downloading thumbnail");
+
+        try
+        {
+            var thumbnailDir = Path.Combine(_downloadDirectory, channel.Id, "thumbnails");
+            var thumbnailPath = await _ytDlpClient.DownloadThumbnailAsync(episode.VideoId, thumbnailDir, cancellationToken);
+
+            if (thumbnailPath != null)
+            {
+                // Store relative path
+                var relativePath = Path.GetRelativePath(_downloadDirectory, thumbnailPath);
+                episode.ThumbnailUrl = relativePath;
+                _logger.LogInformation("Downloaded thumbnail for episode {EpisodeId}: {Path}", episode.Id, relativePath);
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // Thumbnail download failure is not critical - log and continue
+            _logger.LogWarning(ex, "Failed to download thumbnail for episode {EpisodeId}, continuing without it", episode.Id);
+        }
+
+        // Step 6: Update episode with file info and timestamp
         episode.DownloadedAt = DateTimeOffset.UtcNow;
         await _episodeRepository.UpdateAsync(episode, cancellationToken);
 
-        // Step 6: Cleanup temp files
+        // Step 7: Cleanup temp files
         cancellationToken.ThrowIfCancellationRequested();
 
         ReportProgress(progressCallback, PipelineStage.Cleanup, episode.Id, null, "Cleaning up temporary files");
 
         await CleanupTempFileAsync(downloadedFilePath);
 
-        // Step 7: Mark as completed
+        // Step 8: Mark as completed
         await UpdateEpisodeStatusAsync(episode, EpisodeStatus.Completed, cancellationToken);
 
         stopwatch.Stop();

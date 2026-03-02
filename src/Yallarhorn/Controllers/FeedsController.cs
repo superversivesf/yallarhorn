@@ -143,16 +143,44 @@ public class FeedsController : ControllerBase
         }
 
         function copyUrl(url, btn) {
-            navigator.clipboard.writeText(url).then(() => {
-                btn.textContent = '✓';
-                btn.classList.add('copied');
-                setTimeout(() => {
-                    btn.textContent = '📋';
-                    btn.classList.remove('copied');
-                }, 1500);
-            }).catch(() => {
-                showToast('Failed to copy', false);
-            });
+            // Try modern clipboard API first
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(url).then(() => {
+                    showCopySuccess(btn);
+                }).catch(() => {
+                    fallbackCopy(url, btn);
+                });
+            } else {
+                // Fallback for non-HTTPS contexts
+                fallbackCopy(url, btn);
+            }
+        }
+
+        function fallbackCopy(url, btn) {
+            const textArea = document.createElement('textarea');
+            textArea.value = url;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                showCopySuccess(btn);
+            } catch (err) {
+                showToast('Failed to copy URL', false);
+            }
+            document.body.removeChild(textArea);
+        }
+
+        function showCopySuccess(btn) {
+            btn.textContent = '✓';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.textContent = '📋';
+                btn.classList.remove('copied');
+            }, 1500);
         }
 
         function refreshChannel(channelId) {
