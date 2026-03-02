@@ -70,12 +70,23 @@ else
 if (configFound && !string.IsNullOrEmpty(configPath))
 {
     builder.Configuration.AddYamlFile(configPath, optional: true);
+    Console.WriteLine($"[DEBUG] Loading YAML config from: {configPath}");
 }
 else
 {
-    // Log warning - no config file found but app can still start
+    // Log warning - no configuration file found but app can still start
     Console.WriteLine("Warning: No configuration file found. Using defaults.");
     Console.WriteLine("  Searched: --config argument, /app/yallarhorn.yaml, ./yallarhorn.yaml");
+}
+
+// Debug: show all Server:* config keys before binding
+var allServerKeys = builder.Configuration.AsEnumerable()
+    .Where(kv => kv.Key.StartsWith("Server:", StringComparison.OrdinalIgnoreCase) && kv.Value != null)
+    .ToList();
+Console.WriteLine($"[DEBUG] Server keys from config (count={allServerKeys.Count}):");
+foreach (var kv in allServerKeys.OrderBy(x => x.Key))
+{
+    Console.WriteLine($"  {kv.Key} = {kv.Value}");
 }
 
 // Add Serilog logging
