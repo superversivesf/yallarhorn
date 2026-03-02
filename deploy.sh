@@ -19,7 +19,7 @@ echo -e "${YELLOW}=== Yallarhorn Deployment Script ===${NC}\n"
 
 # Step 1: Stop and remove current containers
 echo -e "${YELLOW}[1/6] Stopping and removing containers...${NC}"
-docker-compose down -v
+docker compose down -v
 
 # Step 2: Remove all yallarhorn volumes
 echo -e "${YELLOW}[2/6] Removing yallarhorn volumes...${NC}"
@@ -33,11 +33,11 @@ fi
 
 # Step 3: Rebuild the Docker image
 echo -e "${YELLOW}[3/6] Rebuilding Docker image...${NC}"
-docker-compose build --no-cache
+docker compose build --no-cache
 
 # Step 4: Deploy with docker-compose
 echo -e "${YELLOW}[4/6] Deploying containers...${NC}"
-docker-compose up -d
+docker compose up -d
 
 # Step 5: Wait for service to be healthy
 echo -e "${YELLOW}[5/6] Waiting for service to be healthy...${NC}"
@@ -56,7 +56,7 @@ done
 if [ $RETRY_COUNT -eq $MAX_HEALTH_RETRIES ]; then
     echo -e "${RED}✗ Service failed to become healthy after $MAX_HEALTH_RETRIES attempts${NC}"
     echo "Checking container logs..."
-    docker-compose logs --tail=50
+    docker compose logs --tail=50
     exit 1
 fi
 
@@ -74,4 +74,4 @@ fi
 
 # Show container status
 echo -e "${YELLOW}Container Status:${NC}"
-docker-compose ps
+docker compose ps
