@@ -60,4 +60,7 @@ Thumbs.db
 appsettings.*.json
 !appsettings.json
 !appsettings.Development.json
+
+# User configuration files (copy from .example files)
 .env
+yallarhorn.yaml

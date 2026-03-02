@@ -28,6 +28,16 @@ if [ ! -f .env ]; then
     fi
 fi
 
+# Check for yallarhorn.yaml file
+if [ ! -f yallarhorn.yaml ]; then
+    echo -e "${YELLOW}No yallarhorn.yaml file found, creating from yallarhorn.yaml.example${NC}"
+    if [ -f yallarhorn.yaml.example ]; then
+        cp yallarhorn.yaml.example yallarhorn.yaml
+        echo -e "${GREEN}✓ Created yallarhorn.yaml file${NC}"
+        echo -e "${YELLOW}NOTE: Edit yallarhorn.yaml to add your channels${NC}\n"
+    fi
+fi
+
 # Step 1: Stop and remove current containers (preserve volumes)
 echo -e "${YELLOW}[1/4] Stopping containers...${NC}"
 docker compose down
