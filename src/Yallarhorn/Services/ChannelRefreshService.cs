@@ -105,8 +105,6 @@ public class ChannelRefreshService : IChannelRefreshService
     /// <inheritdoc />
     public async Task<RefreshResult> RefreshChannelAsync(string channelId, CancellationToken cancellationToken = default)
     {
-        _logger?.LogInformation("Refreshing channel {ChannelId}", channelId);
-
         // Step 1: Get the channel
         var channel = await _channelRepository.GetByIdAsync(channelId, cancellationToken);
         if (channel == null)
@@ -121,22 +119,18 @@ public class ChannelRefreshService : IChannelRefreshService
             };
         }
 
+        _logger?.LogInformation("Sync started for {ChannelName}", channel.Title);
+
         // Mark channel as syncing
         _syncingChannels[channelId] = true;
 
         try
         {
             // Step 2: Fetch video list from YouTube via yt-dlp
-            _logger?.LogDebug("Fetching videos for channel {ChannelId} from {Url}", channel.Id, channel.Url);
             var videos = await _ytDlpClient.GetChannelVideosAsync(channel.Url, cancellationToken);
             var videoList = videos.ToList();
 
-            _logger?.LogInformation("Found {Count} videos for channel {ChannelId}", videoList.Count, channel.Id);
-
-            if (videoList.Count == 0)
-            {
-                _logger?.LogWarning("No videos returned from yt-dlp for channel {ChannelId} at {Url}", channel.Id, channel.Url);
-            }
+            _logger?.LogInformation("Discovered {Count} episodes for {ChannelName}", videoList.Count, channel.Title);
 
             // Step 3: Filter by rolling window (top N by published_at)
             var videosToProcess = videoList
@@ -145,10 +139,10 @@ public class ChannelRefreshService : IChannelRefreshService
                 .ToList();
 
             _logger?.LogDebug(
-                "Processing {Count} videos (rolling window of {MaxVideos}) for channel {ChannelId}",
+                "Processing {Count} videos (rolling window of {MaxVideos}) for {ChannelName}",
                 videosToProcess.Count,
                 channel.EpisodeCountConfig,
-                channel.Id);
+                channel.Title);
 
             // Step 4: Check for new episodes (dedupe by video_id) and create
             var episodesQueued = 0;
@@ -174,11 +168,10 @@ public class ChannelRefreshService : IChannelRefreshService
                 await _queueService.EnqueueAsync(episode.Id, priority: 5, cancellationToken);
                 episodesQueued++;
 
-                _logger?.LogInformation(
-                    "Created and queued new episode {EpisodeId} (VideoId: {VideoId}) for channel {ChannelId}",
-                    episode.Id,
+                _logger?.LogDebug(
+                    "Queued new episode {VideoId} for {ChannelName}",
                     video.Id,
-                    channel.Id);
+                    channel.Title);
             }
 
             // Step 5: Download channel avatar (non-critical, don't fail if this fails)
@@ -198,9 +191,8 @@ public class ChannelRefreshService : IChannelRefreshService
             await _channelRepository.UpdateAsync(channel, cancellationToken);
 
             _logger?.LogInformation(
-                "Channel {ChannelId} refresh complete: {VideosFound} videos found, {EpisodesQueued} episodes queued",
-                channel.Id,
-                videoList.Count,
+                "Sync completed for {ChannelName}: {EpisodesQueued} new episodes queued",
+                channel.Title,
                 episodesQueued);
 
             return new RefreshResult
@@ -213,17 +205,17 @@ public class ChannelRefreshService : IChannelRefreshService
         }
         catch (OperationCanceledException)
         {
-            _logger?.LogInformation("Channel {ChannelId} refresh was cancelled", channel.Id);
+            _logger?.LogInformation("Sync cancelled for {ChannelName}", channel.Title);
             throw;
         }
         catch (YtDlpException ex)
         {
-            _logger?.LogError(ex, "Failed to fetch videos for channel {ChannelId}: {Message}", channel.Id, ex.Message);
+            _logger?.LogError(ex, "Failed to fetch videos for channel {ChannelName}: {Message}", channel.Title, ex.Message);
             throw;
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "Unexpected error refreshing channel {ChannelId}: {Message}", channel.Id, ex.Message);
+            _logger?.LogError(ex, "Unexpected error syncing channel {ChannelName}: {Message}", channel.Title, ex.Message);
             throw;
         }
         finally
@@ -236,13 +228,11 @@ public class ChannelRefreshService : IChannelRefreshService
     /// <inheritdoc />
     public async Task<IEnumerable<RefreshResult>> RefreshAllChannelsAsync(CancellationToken cancellationToken = default)
     {
-        _logger?.LogInformation("Starting refresh of all enabled channels");
-
         // Get all enabled channels
         var channels = await _channelRepository.GetEnabledAsync(cancellationToken);
         var channelList = channels.ToList();
 
-        _logger?.LogInformation("Found {Count} enabled channels to refresh", channelList.Count);
+        _logger?.LogInformation("Starting sync for {Count} channels", channelList.Count);
 
         var results = new List<RefreshResult>();
 
@@ -257,12 +247,12 @@ public class ChannelRefreshService : IChannelRefreshService
             }
             catch (OperationCanceledException)
             {
-                _logger?.LogWarning("Refresh all channels was cancelled");
+                _logger?.LogWarning("Sync all channels was cancelled");
                 throw;
             }
             catch (Exception ex)
             {
-                _logger?.LogError(ex, "Failed to refresh channel {ChannelId}, continuing with next channel", channel.Id);
+                _logger?.LogError(ex, "Failed to sync channel {ChannelName}, continuing with next channel", channel.Title);
                 // Continue with other channels - don't fail the entire operation
                 results.Add(new RefreshResult
                 {
@@ -276,9 +266,9 @@ public class ChannelRefreshService : IChannelRefreshService
         }
 
         _logger?.LogInformation(
-            "Completed refresh of {Count} channels: {Queued} total episodes queued",
-            results.Count,
-            results.Sum(r => r.EpisodesQueued));
+            "Sync completed: {TotalEpisodes} new episodes queued across {Count} channels",
+            results.Sum(r => r.EpisodesQueued),
+            results.Count);
 
         return results;
     }
@@ -374,7 +364,7 @@ public class ChannelRefreshService : IChannelRefreshService
 
             var relativePath = Path.GetRelativePath(_downloadDirectory, thumbnailPath);
             channel.ThumbnailUrl = relativePath;
-            _logger?.LogInformation("Downloaded channel avatar for {ChannelId}: {Path}", channel.Id, relativePath);
+            _logger?.LogDebug("Downloaded channel avatar for {ChannelName}", channel.Title);
         }
         catch (Exception ex)
         {

@@ -284,7 +284,7 @@ public class DownloadPipeline : IDownloadPipeline
         catch (YtDlpException ex)
         {
             _logger.LogError(ex, "Download failed for episode {EpisodeId}: {Message}", episode.Id, ex.Message);
-            _logger.LogError("yt-dlp stderr: {Error}", ex.ErrorOutput ?? "no stderr");
+            _logger.LogDebug("yt-dlp stderr: {Error}", ex.ErrorOutput ?? "no stderr");
 
             return await CreateFailedResultWithUpdateAsync(
                 episode,
@@ -368,7 +368,7 @@ public class DownloadPipeline : IDownloadPipeline
                 // Store relative path
                 var relativePath = Path.GetRelativePath(_downloadDirectory, thumbnailPath);
                 episode.ThumbnailUrl = relativePath;
-                _logger.LogInformation("Downloaded thumbnail for episode {EpisodeId}: {Path}", episode.Id, relativePath);
+                _logger.LogDebug("Downloaded thumbnail for episode {EpisodeId}: {Path}", episode.Id, relativePath);
             }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -454,8 +454,6 @@ public class DownloadPipeline : IDownloadPipeline
 
         // Build video URL from video ID
         var videoUrl = $"https://www.youtube.com/watch?v={episode.VideoId}";
-
-        _logger.LogDebug("Downloading from {Url} to {Path}", videoUrl, tempPath);
 
         var downloadedPath = await _ytDlpClient.DownloadVideoAsync(
             videoUrl,

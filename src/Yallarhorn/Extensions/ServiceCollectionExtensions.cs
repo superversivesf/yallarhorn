@@ -13,6 +13,7 @@ using Yallarhorn.Controllers;
 using Yallarhorn.Data;
 using Yallarhorn.Data.Repositories;
 using Yallarhorn.Data.Seeding;
+using Yallarhorn.Logging;
 using Yallarhorn.Services;
 
 /// <summary>
@@ -72,8 +73,13 @@ public static class ServiceCollectionExtensions
         // Database
         var databaseOptions = configuration.GetSection(DatabaseOptions.SectionName).Get<DatabaseOptions>()
             ?? new DatabaseOptions();
+        var loggingOptions = configuration.GetSection(LoggingOptions.SectionName).Get<LoggingOptions>()
+            ?? new LoggingOptions();
         services.AddDbContext<YallarhornDbContext>(options =>
-            options.UseSqlite($"Data Source={databaseOptions.Path}"));
+        {
+            options.UseSqlite($"Data Source={databaseOptions.Path}");
+            options.ConfigureDebugLogging(loggingOptions.DebugMode);
+        });
 
         // Repositories (Scoped)
         services.AddScoped<IChannelRepository, ChannelRepository>();

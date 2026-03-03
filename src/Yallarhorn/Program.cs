@@ -97,6 +97,16 @@ else
     Console.WriteLine("Warning: No configuration file found. Using defaults.");
 }
 
+// Add environment variable mappings for debug mode
+var debugModeEnv = Environment.GetEnvironmentVariable("YALLARHORN_DEBUG_MODE");
+if (!string.IsNullOrEmpty(debugModeEnv))
+{
+    builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+    {
+        ["LoggingOptions:DebugMode"] = debugModeEnv.ToLowerInvariant()
+    });
+}
+
 // Add Serilog logging
 builder.AddYallarhornLogging();
 

@@ -3,6 +3,7 @@ namespace Yallarhorn.Logging;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Serilog.Enrichers;
 
@@ -61,5 +62,28 @@ public static class LoggingExtensions
         builder.Host.UseSerilog();
 
         return builder;
+    }
+
+    /// <summary>
+    /// Configures EF Core logging options based on DebugMode setting.
+    /// </summary>
+    public static DbContextOptionsBuilder ConfigureDebugLogging(
+        this DbContextOptionsBuilder optionsBuilder, 
+        bool debugMode)
+    {
+        if (debugMode)
+        {
+            // Enable detailed EF Core SQL logging in debug mode
+            optionsBuilder.EnableSensitiveDataLogging();
+            optionsBuilder.EnableDetailedErrors();
+        }
+        else
+        {
+            // Suppress EF Core SQL logging in production mode
+            optionsBuilder.EnableSensitiveDataLogging(false);
+            optionsBuilder.EnableDetailedErrors(false);
+        }
+
+        return optionsBuilder;
     }
 }

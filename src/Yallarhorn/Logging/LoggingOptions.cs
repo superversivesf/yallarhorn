@@ -13,6 +13,13 @@ public class LoggingOptions
     public const string SectionName = "LoggingOptions";
 
     /// <summary>
+    /// Gets or sets whether debug mode is enabled.
+    /// When enabled, shows SQL queries and detailed logs.
+    /// When disabled, clean production logs are shown.
+    /// </summary>
+    public bool DebugMode { get; set; } = false;
+
+    /// <summary>
     /// Gets or sets the minimum log level.
     /// </summary>
     public string MinimumLevel { get; set; } = "Information";
@@ -54,9 +61,16 @@ public class LoggingOptions
 
     /// <summary>
     /// Parses the minimum level string to LogEventLevel.
+    /// If DebugMode is enabled and no explicit level is set, returns Debug.
     /// </summary>
     public LogEventLevel GetMinimumLogEventLevel()
     {
+        // If DebugMode is enabled and using default Information level, override to Debug
+        if (DebugMode && MinimumLevel == "Information")
+        {
+            return LogEventLevel.Debug;
+        }
+
         return MinimumLevel?.ToLowerInvariant() switch
         {
             "verbose" => LogEventLevel.Verbose,

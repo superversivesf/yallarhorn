@@ -46,7 +46,7 @@ public class DownloadWorker : IHostedService, IDisposable
         _pollInterval = pollInterval ?? DefaultPollInterval;
         _cts = new CancellationTokenSource();
 
-        _logger.LogInformation(
+        _logger.LogDebug(
             "DownloadWorker created with poll interval of {Interval}",
             _pollInterval);
     }

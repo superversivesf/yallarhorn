@@ -36,7 +36,7 @@ public class RefreshWorker : IHostedService, IDisposable
         _pollInterval = pollInterval ?? TimeSpan.FromHours(1);
         _cts = new CancellationTokenSource();
 
-        _logger.LogInformation(
+        _logger.LogDebug(
             "RefreshWorker created with poll interval of {Interval}",
             _pollInterval);
     }
@@ -67,8 +67,10 @@ public class RefreshWorker : IHostedService, IDisposable
             _pollInterval,
             _pollInterval);
 
-        _logger.LogInformation(
-            "RefreshWorker started - initial refresh triggered, timer set for {Interval}",
+        _logger.LogInformation("RefreshWorker started");
+
+        _logger.LogDebug(
+            "Initial refresh triggered, timer set for {Interval}",
             _pollInterval);
 
         return Task.CompletedTask;
@@ -184,7 +186,7 @@ public class RefreshWorker : IHostedService, IDisposable
     private async Task RefreshAllChannelsInternalAsync()
     {
         var startTime = DateTimeOffset.UtcNow;
-        _logger.LogInformation("Starting periodic channel refresh");
+        _logger.LogDebug("Starting periodic channel refresh");
 
         try
         {

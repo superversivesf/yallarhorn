@@ -28,7 +28,7 @@ public class YtDlpClient : IYtDlpClient
     /// <inheritdoc/>
     public async Task<YtDlpMetadata> GetVideoMetadataAsync(string url, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Fetching metadata for URL: {Url}", url);
+        _logger.LogDebug("Fetching metadata for URL: {Url}", url);
 
         var arguments = "--print-json --no-download --no-warnings";
         var result = await ExecuteYtDlpAsync(arguments, url, cancellationToken);
@@ -55,7 +55,7 @@ public class YtDlpClient : IYtDlpClient
                 throw new YtDlpException("Failed to parse video metadata: null result");
             }
 
-            _logger.LogInformation("Successfully fetched metadata for video {VideoId}", metadata.Id);
+            _logger.LogInformation("Fetched metadata for video {VideoId}", metadata.Id);
             return metadata;
         }
         catch (JsonException ex)
@@ -68,7 +68,7 @@ public class YtDlpClient : IYtDlpClient
     /// <inheritdoc/>
     public async Task<IReadOnlyList<YtDlpMetadata>> GetChannelVideosAsync(string channelUrl, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Fetching channel videos from: {ChannelUrl}", channelUrl);
+        _logger.LogDebug("Fetching channel videos from: {ChannelUrl}", channelUrl);
 
         // Use --flat-playlist for quick list, but we also need full metadata
         // So we use --print-json without --flat-playlist to get timestamp and other fields
@@ -146,7 +146,7 @@ public class YtDlpClient : IYtDlpClient
         Action<DownloadProgress>? progressCallback = null,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Downloading video from {Url} to {OutputPath}", url, outputPath);
+        _logger.LogDebug("Downloading video from {Url} to {OutputPath}", url, outputPath);
 
         // Ensure output directory exists
         var directory = Path.GetDirectoryName(outputPath);
@@ -173,7 +173,7 @@ public class YtDlpClient : IYtDlpClient
             throw new YtDlpException($"Download completed but file not found at {outputPath}");
         }
 
-        _logger.LogInformation("Successfully downloaded video to {OutputPath}", outputPath);
+        _logger.LogInformation("Downloaded video to {OutputPath}", outputPath);
         return outputPath;
     }
 
@@ -183,7 +183,7 @@ public class YtDlpClient : IYtDlpClient
         string outputDir,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Downloading thumbnail for video {VideoId}", videoId);
+        _logger.LogDebug("Downloading thumbnail for video {VideoId}", videoId);
 
         // Ensure output directory exists
         if (!Directory.Exists(outputDir))
@@ -223,7 +223,7 @@ public class YtDlpClient : IYtDlpClient
                           ?? files.FirstOrDefault(f => f.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
                           ?? files.First();
 
-            _logger.LogInformation("Downloaded thumbnail for video {VideoId}: {Path}", videoId, thumbnail);
+            _logger.LogDebug("Downloaded thumbnail for video {VideoId}: {Path}", videoId, thumbnail);
             return thumbnail;
         }
         catch (Exception ex)
