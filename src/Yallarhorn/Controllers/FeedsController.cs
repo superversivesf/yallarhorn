@@ -119,6 +119,75 @@ public class FeedsController : ControllerBase
             color: #0066cc;
             font-weight: 500;
         }}
+        .modal-overlay {{
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s, visibility 0.2s;
+        }}
+        .modal-overlay.active {{
+            opacity: 1;
+            visibility: visible;
+        }}
+        .modal {{
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        }}
+        .modal h3 {{
+            margin: 0 0 12px 0;
+            color: #333;
+            font-size: 1.1rem;
+        }}
+        .modal p {{
+            margin: 0 0 20px 0;
+            color: #666;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }}
+        .modal-buttons {{
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }}
+        .modal-buttons button {{
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            border: none;
+            font-weight: 500;
+        }}
+        .modal-cancel {{
+            background: #f5f5f5;
+            color: #333;
+        }}
+        .modal-cancel:hover {{
+            background: #e0e0e0;
+        }}
+        .modal-confirm {{
+            background: #dc3545;
+            color: white;
+        }}
+        .modal-confirm:hover {{
+            background: #c82333;
+        }}
+        .modal-buttons button:focus {{
+            outline: 3px solid #0066cc;
+            outline-offset: 2px;
+        }}
     </style>
 </head>
 <body>
@@ -203,6 +272,17 @@ public class FeedsController : ControllerBase
 
         html += @"
     <div id=""toast"" class=""toast""></div>
+    
+    <div id=""deleteModal"" class=""modal-overlay"" role=""dialog"" aria-modal=""true"" aria-labelledby=""modalTitle"" aria-describedby=""modalDesc"">
+        <div class=""modal"">
+            <h3 id=""modalTitle"">Delete Channel?</h3>
+            <p id=""modalDesc"">This will permanently delete the channel and all its episodes. This action cannot be undone.</p>
+            <div class=""modal-buttons"">
+                <button type=""button"" class=""modal-cancel"" onclick=""closeDeleteModal();"">Cancel</button>
+                <button type=""button"" class=""modal-confirm"" id=""confirmDeleteBtn"">Delete</button>
+            </div>
+        </div>
+    </div>
 
     <script>
         function showToast(message, isSuccess) {
@@ -265,10 +345,32 @@ public class FeedsController : ControllerBase
                 .catch(() => showToast('Error refreshing', false));
         }
 
-        function deleteChannel(channelId, btn) {
-            if (!confirm('Delete this channel and all its episodes? This cannot be undone.')) {
+        var pendingChannelId = null;
+        var pendingButton = null;
+
+        function showDeleteModal(channelId, btn) {
+            pendingChannelId = channelId;
+            pendingButton = btn;
+            const modal = document.getElementById('deleteModal');
+            modal.classList.add('active');
+            document.getElementById('confirmDeleteBtn').focus();
+        }
+
+        function closeDeleteModal() {
+            const modal = document.getElementById('deleteModal');
+            modal.classList.remove('active');
+            pendingChannelId = null;
+            pendingButton = null;
+        }
+
+        function confirmDelete() {
+            if (!pendingChannelId || !pendingButton) {
                 return;
             }
+            const channelId = pendingChannelId;
+            const btn = pendingButton;
+            closeDeleteModal();
+            
             btn.textContent = 'Deleting...';
             fetch('/api/v1/channels/' + channelId, { method: 'DELETE' })
                 .then(response => {
@@ -286,6 +388,21 @@ public class FeedsController : ControllerBase
                     showToast('Error deleting', false);
                 });
         }
+
+        function deleteChannel(channelId, btn) {
+            showDeleteModal(channelId, btn);
+        }
+
+        // Handle escape key to close modal
+        document.addEventListener('keydown', function(e) {
+            const modal = document.getElementById('deleteModal');
+            if (e.key === 'Escape' && modal.classList.contains('active')) {
+                closeDeleteModal();
+            }
+        });
+
+        // Setup confirm button
+        document.getElementById('confirmDeleteBtn').addEventListener('click', confirmDelete);
 
         document.getElementById('addChannelForm').addEventListener('submit', function(e) {
             e.preventDefault();
