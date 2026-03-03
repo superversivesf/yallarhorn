@@ -93,6 +93,32 @@ public class FeedsController : ControllerBase
             .copy-btn {{ padding: 5px 6px; font-size: 0.7rem; }}
             .add-channel .form-group {{ min-width: 100%; }}
         }}
+        @keyframes spin {{
+            0% {{ transform: rotate(0deg); }}
+            100% {{ transform: rotate(360deg); }}
+        }}
+        .spinner {{
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid #ccc;
+            border-top-color: #0066cc;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 5px;
+            vertical-align: middle;
+        }}
+        .sync-status {{
+            font-size: 0.8rem;
+            color: #888;
+            margin-left: 8px;
+            display: inline-flex;
+            align-items: center;
+        }}
+        .syncing-text {{
+            color: #0066cc;
+            font-weight: 500;
+        }}
     </style>
 </head>
 <body>
@@ -158,11 +184,12 @@ public class FeedsController : ControllerBase
             var thumbnailHtml = !string.IsNullOrEmpty(channel.ThumbnailUrl)
                 ? $"<img src=\"{EscapeHtml(channel.ThumbnailUrl)}\" alt=\"{EscapeHtml(channel.Title)}\" class=\"channel-thumb\" onerror=\"this.style.display='none'\" />"
                 : "";
+            var lastRefreshStr = channel.LastRefreshAt?.ToString("o") ?? "";
             html += $@"
-    <div class=""channel"" id=""channel-{channel.Id}"">
+    <div class=""channel"" id=""channel-{channel.Id}"" data-channel-id=""{channel.Id}"" data-last-refresh=""{lastRefreshStr}"">
         {thumbnailHtml}
         <div class=""channel-content"">
-            <h3>{EscapeHtml(channel.Title)} <span class=""episode-count"">({episodeCount})</span></h3>
+            <h3>{EscapeHtml(channel.Title)} <span class=""episode-count"">({episodeCount})</span><span class=""sync-status"" id=""sync-status-{channel.Id}""></span></h3>
             <div class=""feed-links"">
                 <div class=""feed-item""><a href=""{baseUrl}/feed/{channel.Id}/atom.xml"">Atom</a><button class=""copy-btn"" onclick=""copyUrl('{baseUrl}/feed/{channel.Id}/atom.xml', this)"">📋</button></div>
                 <div class=""feed-item""><a href=""{baseUrl}/feed/{channel.Id}/video.rss"" class=""video"">RSS</a><button class=""copy-btn"" onclick=""copyUrl('{baseUrl}/feed/{channel.Id}/video.rss', this)"">📋</button></div>
@@ -352,6 +379,55 @@ public class FeedsController : ControllerBase
         updateQueueStatus();
         // Auto-refresh every 10 seconds
         setInterval(updateQueueStatus, 10000);
+
+        function updateSyncStatus() {
+            fetch('/api/v1/channels/sync-status')
+                .then(response => response.json())
+                .then(data => {
+                    data.forEach(function(item) {
+                        var statusEl = document.getElementById('sync-status-' + item.channelId);
+                        var channelEl = document.getElementById('channel-' + item.channelId);
+                        
+                        if (!statusEl || !channelEl) return;
+                        
+                        if (item.isSyncing) {
+                            statusEl.innerHTML = '<span class=""spinner""></span><span class=""syncing-text"">Syncing...</span>';
+                        } else {
+                            var lastRefresh = channelEl.getAttribute('data-last-refresh');
+                            if (lastRefresh) {
+                                var lastDate = new Date(lastRefresh);
+                                var now = new Date();
+                                var diffMs = now - lastDate;
+                                var diffMins = Math.floor(diffMs / 60000);
+                                var diffHours = Math.floor(diffMins / 60);
+                                var diffDays = Math.floor(diffHours / 24);
+                                
+                                var timeText = '';
+                                if (diffDays > 0) {
+                                    timeText = diffDays + ' day' + (diffDays > 1 ? 's' : '') + ' ago';
+                                } else if (diffHours > 0) {
+                                    timeText = diffHours + ' hour' + (diffHours > 1 ? 's' : '') + ' ago';
+                                } else if (diffMins > 0) {
+                                    timeText = diffMins + ' minute' + (diffMins > 1 ? 's' : '') + ' ago';
+                                } else {
+                                    timeText = 'just now';
+                                }
+                                statusEl.innerHTML = 'Last synced: ' + timeText;
+                            } else {
+                                statusEl.innerHTML = 'Never synced';
+                            }
+                        }
+                    });
+                })
+                .catch(function() {
+                    // Silently fail - sync status is not critical
+                });
+        }
+
+        // Initial sync status check
+        updateSyncStatus();
+        // Poll every 5 seconds
+        setInterval(updateSyncStatus, 5000);
     </script>
 </body>
 </html>";

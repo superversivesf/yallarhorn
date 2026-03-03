@@ -142,6 +142,30 @@ public class ChannelsController : ControllerBase
     }
 
     /// <summary>
+    /// Gets the sync status of all channels.
+    /// </summary>
+    /// <returns>List of channels with their sync status.</returns>
+    [HttpGet("sync-status")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetChannelsSyncStatus(CancellationToken cancellationToken = default)
+    {
+        _logger.LogDebug("Getting sync status for all channels");
+
+        // Get all channels
+        var channels = await _channelRepository.GetAllAsync(cancellationToken);
+        var channelList = channels.ToList();
+
+        // Build sync status response matching the spec: {channelId: string, isSyncing: boolean}[]
+        var syncStatuses = channelList.Select(channel => new
+        {
+            channelId = channel.Id,
+            isSyncing = ChannelRefreshService.IsChannelSyncing(channel.Id)
+        }).ToList();
+
+        return Ok(syncStatuses);
+    }
+
+    /// <summary>
     /// Gets a single channel by ID.
     /// </summary>
     /// <param name="id">The channel ID.</param>

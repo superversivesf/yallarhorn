@@ -1,6 +1,7 @@
 namespace Yallarhorn.Services;
 
 using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
 using Yallarhorn.Data.Entities;
 using Yallarhorn.Data.Enums;
 using Yallarhorn.Data.Repositories;
@@ -69,6 +70,12 @@ public class ChannelRefreshService : IChannelRefreshService
     private readonly IDownloadQueueService _queueService;
     private readonly ILogger<ChannelRefreshService>? _logger;
     private readonly string _downloadDirectory;
+    
+    /// <summary>
+    /// Static dictionary to track which channels are currently syncing.
+    /// Key: ChannelId, Value: true if syncing
+    /// </summary>
+    private static readonly ConcurrentDictionary<string, bool> _syncingChannels = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ChannelRefreshService"/> class.
@@ -113,6 +120,9 @@ public class ChannelRefreshService : IChannelRefreshService
                 RefreshedAt = null
             };
         }
+
+        // Mark channel as syncing
+        _syncingChannels[channelId] = true;
 
         try
         {
@@ -216,6 +226,11 @@ public class ChannelRefreshService : IChannelRefreshService
             _logger?.LogError(ex, "Unexpected error refreshing channel {ChannelId}: {Message}", channel.Id, ex.Message);
             throw;
         }
+        finally
+        {
+            // Clear sync state when done (success or failure)
+            _syncingChannels.TryRemove(channelId, out _);
+        }
     }
 
     /// <inheritdoc />
@@ -266,6 +281,25 @@ public class ChannelRefreshService : IChannelRefreshService
             results.Sum(r => r.EpisodesQueued));
 
         return results;
+    }
+
+    /// <summary>
+    /// Gets the sync status for a specific channel.
+    /// </summary>
+    /// <param name="channelId">The channel ID to check.</param>
+    /// <returns>True if the channel is currently syncing, false otherwise.</returns>
+    public static bool IsChannelSyncing(string channelId)
+    {
+        return _syncingChannels.TryGetValue(channelId, out var isSyncing) && isSyncing;
+    }
+
+    /// <summary>
+    /// Gets the IDs of all currently syncing channels.
+    /// </summary>
+    /// <returns>Dictionary mapping channel IDs to their sync status.</returns>
+    public static Dictionary<string, bool> GetSyncingChannels()
+    {
+        return _syncingChannels.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
     }
 
     /// <summary>
@@ -325,12 +359,17 @@ public class ChannelRefreshService : IChannelRefreshService
                 Directory.CreateDirectory(thumbnailDir);
             }
 
-            var fileName = $"channel_avatar{Path.GetExtension(new Uri(avatarUrl).AbsolutePath)}";
-            var thumbnailPath = Path.Combine(thumbnailDir, fileName);
-
             using var httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
-            var imageBytes = await httpClient.GetByteArrayAsync(avatarUrl, cancellationToken);
+            
+            var response = await httpClient.GetAsync(avatarUrl, cancellationToken);
+            response.EnsureSuccessStatusCode();
+            
+            var extension = GetImageExtension(response.Content.Headers.ContentType?.MediaType);
+            var fileName = $"channel_avatar{extension}";
+            var thumbnailPath = Path.Combine(thumbnailDir, fileName);
+
+            var imageBytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
             await File.WriteAllBytesAsync(thumbnailPath, imageBytes, cancellationToken);
 
             var relativePath = Path.GetRelativePath(_downloadDirectory, thumbnailPath);
@@ -371,5 +410,23 @@ public class ChannelRefreshService : IChannelRefreshService
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Gets the file extension for an image MIME type.
+    /// </summary>
+    /// <param name="mediaType">The MIME type (e.g., "image/webp").</param>
+    /// <returns>File extension with dot (e.g., ".webp"), or ".jpg" as default.</returns>
+    public static string GetImageExtension(string? mediaType)
+    {
+        return mediaType?.ToLowerInvariant() switch
+        {
+            "image/webp" => ".webp",
+            "image/png" => ".png",
+            "image/gif" => ".gif",
+            "image/jpeg" => ".jpg",
+            "image/jpg" => ".jpg",
+            _ => ".jpg" // Default fallback
+        };
     }
 }

@@ -535,6 +535,25 @@ public class ChannelRefreshServiceTests : IDisposable
 
     #endregion
 
+    #region GetImageExtension Tests
+
+    [Theory]
+    [InlineData("image/webp", ".webp")]
+    [InlineData("image/png", ".png")]
+    [InlineData("image/gif", ".gif")]
+    [InlineData("image/jpeg", ".jpg")]
+    [InlineData("image/jpg", ".jpg")]
+    [InlineData(null, ".jpg")]
+    [InlineData("image/unknown", ".jpg")]
+    [InlineData("IMAGE/WEBP", ".webp")]  // Case is normalized via ToLowerInvariant
+    public void GetImageExtension_ShouldReturnCorrectExtension(string? mediaType, string expectedExtension)
+    {
+        var result = ChannelRefreshService.GetImageExtension(mediaType);
+        result.Should().Be(expectedExtension);
+    }
+
+    #endregion
+
     #region Helper Methods
 
     private static YtDlpMetadata CreateVideoMetadata(
