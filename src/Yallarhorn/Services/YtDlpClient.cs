@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using Yallarhorn.Configuration;
 using Yallarhorn.Models;
 
 /// <summary>
@@ -15,14 +16,26 @@ public class YtDlpClient : IYtDlpClient
     private const string YtDlpExecutable = "yt-dlp";
     private readonly ILogger<YtDlpClient> _logger;
     private readonly TimeSpan _defaultTimeout = TimeSpan.FromMinutes(30);
+    private readonly string? _cookiesPath;
 
     /// <summary>
     /// Initializes a new instance of the YtDlpClient.
     /// </summary>
     /// <param name="logger">Logger instance.</param>
-    public YtDlpClient(ILogger<YtDlpClient> logger)
+    /// <param name="options">yt-dlp configuration options.</param>
+    public YtDlpClient(ILogger<YtDlpClient> logger, YtdlpOptions options)
     {
         _logger = logger;
+        _cookiesPath = options.CookiesPath;
+
+        if (!string.IsNullOrEmpty(_cookiesPath) && File.Exists(_cookiesPath))
+        {
+            _logger.LogInformation("yt-dlp configured with cookies from {Path}", _cookiesPath);
+        }
+        else if (!string.IsNullOrEmpty(_cookiesPath))
+        {
+            _logger.LogWarning("Cookies file not found at {Path}", _cookiesPath);
+        }
     }
 
     /// <inheritdoc/>
@@ -233,6 +246,16 @@ public class YtDlpClient : IYtDlpClient
         }
     }
 
+    private string? GetCookiesArgument()
+    {
+        if (string.IsNullOrEmpty(_cookiesPath) || !File.Exists(_cookiesPath))
+        {
+            return null;
+        }
+
+        return $"--cookies \"{_cookiesPath}\"";
+    }
+
     private static string BuildDownloadArguments(string outputPath)
     {
         // Prefer pre-merged 480p MP4 from YouTube, fallback to separate video+audio merge
@@ -264,7 +287,10 @@ public class YtDlpClient : IYtDlpClient
         Action<DownloadProgress>? progressCallback,
         CancellationToken cancellationToken)
     {
-        var fullArguments = $"{arguments} \"{url}\"";
+        var cookiesArg = GetCookiesArgument();
+        var fullArguments = string.IsNullOrEmpty(cookiesArg)
+            ? $"{arguments} \"{url}\""
+            : $"{cookiesArg} {arguments} \"{url}\"";
 
         using var process = new Process
         {

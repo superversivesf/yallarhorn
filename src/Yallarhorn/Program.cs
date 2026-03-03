@@ -107,6 +107,16 @@ if (!string.IsNullOrEmpty(debugModeEnv))
     });
 }
 
+// Add environment variable mapping for yt-dlp cookies
+var cookiesPathEnv = Environment.GetEnvironmentVariable("YALLARHORN_YTDLP_COOKIES_PATH");
+if (!string.IsNullOrEmpty(cookiesPathEnv))
+{
+    builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+    {
+        ["Ytdlp:CookiesPath"] = cookiesPathEnv
+    });
+}
+
 // Add Serilog logging
 builder.AddYallarhornLogging();
 

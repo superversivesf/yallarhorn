@@ -59,11 +59,22 @@ public static class ServiceCollectionExtensions
         services.Configure<TranscodeOptions>(
             configuration.GetSection(TranscodeOptions.SectionName));
 
+        services.Configure<YtdlpOptions>(
+            configuration.GetSection(YtdlpOptions.SectionName));
+
         // Register TranscodeOptions as concrete type for services that need it directly
         services.AddSingleton(sp =>
         {
             var options = configuration.GetSection(TranscodeOptions.SectionName).Get<TranscodeOptions>()
                 ?? new TranscodeOptions();
+            return options;
+        });
+
+        // Register YtdlpOptions as concrete type
+        services.AddSingleton(sp =>
+        {
+            var options = configuration.GetSection(YtdlpOptions.SectionName).Get<YtdlpOptions>()
+                ?? new YtdlpOptions();
             return options;
         });
 
