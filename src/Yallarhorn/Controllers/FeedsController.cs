@@ -406,20 +406,45 @@ public class FeedsController : ControllerBase
 
         document.getElementById('addChannelForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            const url = document.getElementById('channelUrl').value;
-            const title = document.getElementById('channelTitle').value || null;
-            const episodeCount = parseInt(document.getElementById('episodeCount').value) || 3;
-            const feedType = document.getElementById('feedType').value;
-            const enabled = document.getElementById('enabled').checked;
+            
+            const urlInput = document.getElementById('channelUrl');
+            const titleInput = document.getElementById('channelTitle');
+            const episodeCountInput = document.getElementById('episodeCount');
+            const feedTypeInput = document.getElementById('feedType');
+            const enabledInput = document.getElementById('enabled');
+            const submitBtn = e.target.querySelector('button[type=""submit""]');
             const statusDiv = document.getElementById('addStatus');
             
+            const originalBtnText = submitBtn.textContent;
+            
+            function setLoading(loading) {
+                submitBtn.disabled = loading;
+                urlInput.disabled = loading;
+                titleInput.disabled = loading;
+                episodeCountInput.disabled = loading;
+                feedTypeInput.disabled = loading;
+                enabledInput.disabled = loading;
+                
+                if (loading) {
+                    submitBtn.innerHTML = '<span class=""spinner""></span>Adding...';
+                    statusDiv.className = 'status';
+                    statusDiv.innerHTML = '<span class=""spinner""></span>Fetching channel info from YouTube...';
+                    statusDiv.style.display = 'block';
+                } else {
+                    submitBtn.textContent = originalBtnText;
+                }
+            }
+            
+            setLoading(true);
+            
             const requestBody = {
-                url: url,
-                episode_count_config: episodeCount,
-                feed_type: feedType,
-                enabled: enabled
+                url: urlInput.value,
+                episode_count_config: parseInt(episodeCountInput.value) || 3,
+                feed_type: feedTypeInput.value,
+                enabled: enabledInput.checked
             };
             
+            const title = titleInput.value;
             if (title) {
                 requestBody.title = title;
             }
@@ -433,17 +458,25 @@ public class FeedsController : ControllerBase
                 if (response.ok) {
                     statusDiv.className = 'status success';
                     statusDiv.textContent = 'Channel added! Refreshing...';
-                    statusDiv.style.display = 'block';
-                    setTimeout(() => location.reload(), 1500);
-                } else {
+                    setTimeout(() => location.reload(), 1000);
+                    return null;
+                }
+                
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
                     return response.json().then(data => {
-                        throw new Error(data.message || 'Failed to add channel');
+                        throw new Error(data.message || data.error || 'Failed to add channel');
+                    });
+                } else {
+                    return response.text().then(text => {
+                        throw new Error('Server error: ' + response.status + ' ' + response.statusText);
                     });
                 }
             })
             .catch(error => {
+                setLoading(false);
                 statusDiv.className = 'status error';
-                statusDiv.textContent = error.message;
+                statusDiv.textContent = error.message || 'An unexpected error occurred';
                 statusDiv.style.display = 'block';
             });
         });
