@@ -9,14 +9,17 @@ using Yallarhorn.Configuration;
 using Yallarhorn.Models;
 
 /// <summary>
-/// Client for executing yt-dlp commands and parsing output.
+/// Client for executing yt-dlp commands with rate limiting and retry support.
 /// </summary>
 public class YtDlpClient : IYtDlpClient
 {
     private const string YtDlpExecutable = "yt-dlp";
     private readonly ILogger<YtDlpClient> _logger;
     private readonly TimeSpan _defaultTimeout = TimeSpan.FromMinutes(30);
-    private readonly string? _cookiesPath;
+    private readonly YtdlpOptions _options;
+    private readonly Random _random = new();
+    private readonly SemaphoreSlim _rateLimitLock = new(1, 1);
+    private DateTime _lastRequestTime = DateTime.MinValue;
 
     /// <summary>
     /// Initializes a new instance of the YtDlpClient.
@@ -26,130 +29,154 @@ public class YtDlpClient : IYtDlpClient
     public YtDlpClient(ILogger<YtDlpClient> logger, YtdlpOptions options)
     {
         _logger = logger;
-        _cookiesPath = options.CookiesPath;
+        _options = options;
 
-        if (!string.IsNullOrEmpty(_cookiesPath) && File.Exists(_cookiesPath))
+        LogConfiguration();
+    }
+
+    private void LogConfiguration()
+    {
+        if (!string.IsNullOrEmpty(_options.CookiesPath))
         {
-            _logger.LogInformation("yt-dlp configured with cookies from {Path}", _cookiesPath);
+            if (File.Exists(_options.CookiesPath))
+            {
+                _logger.LogInformation("yt-dlp configured with cookies from {Path}", _options.CookiesPath);
+            }
+            else
+            {
+                _logger.LogWarning("Cookies file not found at {Path}", _options.CookiesPath);
+            }
         }
-        else if (!string.IsNullOrEmpty(_cookiesPath))
+
+        if (!string.IsNullOrEmpty(_options.ProxyUrl))
         {
-            _logger.LogWarning("Cookies file not found at {Path}", _cookiesPath);
+            _logger.LogInformation("yt-dlp configured with proxy: {ProxyUrl}", _options.ProxyUrl);
+        }
+
+        if (_options.MinRequestDelaySeconds > 0)
+        {
+            _logger.LogInformation("yt-dlp rate limiting enabled: {Min}-{Max}s delay, backoff: {Backoff}, retries: {Retries}",
+                _options.MinRequestDelaySeconds,
+                _options.MaxRequestDelaySeconds,
+                _options.EnableExponentialBackoff ? "enabled" : "disabled",
+                _options.MaxRetries);
         }
     }
 
     /// <inheritdoc/>
     public async Task<YtDlpMetadata> GetVideoMetadataAsync(string url, CancellationToken cancellationToken = default)
     {
-        _logger.LogDebug("Fetching metadata for URL: {Url}", url);
-
-        var arguments = "--print-json --no-download --no-warnings";
-        var result = await ExecuteYtDlpAsync(arguments, url, cancellationToken);
-
-        if (result.ExitCode != 0)
+        return await ExecuteWithRetryAsync(async () =>
         {
-            _logger.LogError("Failed to fetch metadata for {Url}. Exit code: {ExitCode}, Error: {Error}",
-                url, result.ExitCode, result.Error);
-            throw new YtDlpException(
-                $"Failed to fetch video metadata",
-                result.ExitCode,
-                result.Error);
-        }
+            _logger.LogDebug("Fetching metadata for URL: {Url}", url);
 
-        try
-        {
-            var metadata = JsonSerializer.Deserialize<YtDlpMetadata>(result.Output, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
+            await EnforceRateLimitAsync(cancellationToken);
 
-            if (metadata == null)
+            var arguments = "--print-json --no-download --no-warnings";
+            var result = await ExecuteYtDlpAsync(arguments, url, cancellationToken);
+
+            if (result.ExitCode != 0)
             {
-                throw new YtDlpException("Failed to parse video metadata: null result");
+                throw new YtDlpException(
+                    $"Failed to fetch video metadata",
+                    result.ExitCode,
+                    result.Error);
             }
 
-            _logger.LogInformation("Fetched metadata for video {VideoId}", metadata.Id);
-            return metadata;
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogError(ex, "Failed to parse yt-dlp JSON output for {Url}", url);
-            throw new YtDlpException("Failed to parse video metadata", ex);
-        }
+            try
+            {
+                var metadata = JsonSerializer.Deserialize<YtDlpMetadata>(result.Output, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                if (metadata == null)
+                {
+                    throw new YtDlpException("Failed to parse video metadata: null result");
+                }
+
+                _logger.LogInformation("Fetched metadata for video {VideoId}", metadata.Id);
+                return metadata;
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "Failed to parse yt-dlp JSON output for {Url}", url);
+                throw new YtDlpException("Failed to parse video metadata", ex);
+            }
+        }, cancellationToken);
     }
 
     /// <inheritdoc/>
     public async Task<IReadOnlyList<YtDlpMetadata>> GetChannelVideosAsync(string channelUrl, CancellationToken cancellationToken = default)
     {
-        _logger.LogDebug("Fetching channel videos from: {ChannelUrl}", channelUrl);
-
-        // Use --flat-playlist for quick list, but we also need full metadata
-        // So we use --print-json without --flat-playlist to get timestamp and other fields
-        var arguments = "--print-json --no-warnings --no-playlist-reverse --playlist-end 100";
-        var result = await ExecuteYtDlpAsync(arguments, channelUrl, cancellationToken);
-
-        if (result.ExitCode != 0)
+        return await ExecuteWithRetryAsync(async () =>
         {
-            _logger.LogError("Failed to fetch channel videos from {ChannelUrl}. Exit code: {ExitCode}, Error: {Error}",
-                channelUrl, result.ExitCode, result.Error);
-            throw new YtDlpException(
-                "Failed to fetch channel videos",
-                result.ExitCode,
-                result.Error);
-        }
+            _logger.LogDebug("Fetching channel videos from: {ChannelUrl}", channelUrl);
 
-        // yt-dlp outputs JSON to stdout (as of 2024.04.09)
-        // But some versions may output to stderr, so check both
-        var output = result.Output;
-        if (string.IsNullOrEmpty(output))
-        {
-            output = result.Error;
-            _logger.LogDebug("JSON output was on stderr, length: {Length}", output?.Length ?? 0);
-        }
-        else
-        {
-            _logger.LogDebug("JSON output was on stdout, length: {Length}", output.Length);
-        }
+            await EnforceRateLimitAsync(cancellationToken);
 
-        var videos = new List<YtDlpMetadata>();
-        
-        if (string.IsNullOrEmpty(output))
-        {
-            _logger.LogWarning("No output from yt-dlp for channel {ChannelUrl}. ExitCode: {ExitCode}", channelUrl, result.ExitCode);
-            return videos.AsReadOnly();
-        }
+            var arguments = "--print-json --no-warnings --no-playlist-reverse --playlist-end 100";
+            var result = await ExecuteYtDlpAsync(arguments, channelUrl, cancellationToken);
 
-        var jsonLines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-
-        _logger.LogDebug("Parsing {LineCount} lines of yt-dlp output", jsonLines.Length);
-
-        foreach (var line in jsonLines)
-        {
-            if (string.IsNullOrWhiteSpace(line) || !line.TrimStart().StartsWith("{"))
+            if (result.ExitCode != 0)
             {
-                continue;
+                throw new YtDlpException(
+                    "Failed to fetch channel videos",
+                    result.ExitCode,
+                    result.Error);
             }
 
-            try
+            var output = result.Output;
+            if (string.IsNullOrEmpty(output))
             {
-                var video = JsonSerializer.Deserialize<YtDlpMetadata>(line, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
+                output = result.Error;
+                _logger.LogDebug("JSON output was on stderr, length: {Length}", output?.Length ?? 0);
+            }
+            else
+            {
+                _logger.LogDebug("JSON output was on stdout, length: {Length}", output.Length);
+            }
 
-                if (video != null)
+            var videos = new List<YtDlpMetadata>();
+
+            if (string.IsNullOrEmpty(output))
+            {
+                _logger.LogWarning("No output from yt-dlp for channel {ChannelUrl}. ExitCode: {ExitCode}", channelUrl, result.ExitCode);
+                return videos.AsReadOnly();
+            }
+
+            var jsonLines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+
+            _logger.LogDebug("Parsing {LineCount} lines of yt-dlp output", jsonLines.Length);
+
+            foreach (var line in jsonLines)
+            {
+                if (string.IsNullOrWhiteSpace(line) || !line.TrimStart().StartsWith("{"))
                 {
-                    videos.Add(video);
+                    continue;
+                }
+
+                try
+                {
+                    var video = JsonSerializer.Deserialize<YtDlpMetadata>(line, new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    });
+
+                    if (video != null)
+                    {
+                        videos.Add(video);
+                    }
+                }
+                catch (JsonException ex)
+                {
+                    _logger.LogWarning(ex, "Failed to parse video metadata line: {Line}", line);
                 }
             }
-            catch (JsonException ex)
-            {
-                _logger.LogWarning(ex, "Failed to parse video metadata line: {Line}", line);
-            }
-        }
 
-        _logger.LogInformation("Found {Count} videos in channel", videos.Count);
-        return videos.AsReadOnly();
+            _logger.LogInformation("Found {Count} videos in channel", videos.Count);
+            return videos.AsReadOnly();
+        }, cancellationToken);
     }
 
     /// <inheritdoc/>
@@ -159,35 +186,37 @@ public class YtDlpClient : IYtDlpClient
         Action<DownloadProgress>? progressCallback = null,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogDebug("Downloading video from {Url} to {OutputPath}", url, outputPath);
-
-        // Ensure output directory exists
-        var directory = Path.GetDirectoryName(outputPath);
-        if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+        return await ExecuteWithRetryAsync(async () =>
         {
-            Directory.CreateDirectory(directory);
-        }
+            _logger.LogDebug("Downloading video from {Url} to {OutputPath}", url, outputPath);
 
-        var arguments = BuildDownloadArguments(outputPath);
-        var result = await ExecuteYtDlpWithProgressAsync(arguments, url, progressCallback, cancellationToken);
+            await EnforceRateLimitAsync(cancellationToken);
 
-        if (result.ExitCode != 0)
-        {
-            _logger.LogError("Failed to download video from {Url}. Exit code: {ExitCode}, Error: {Error}",
-                url, result.ExitCode, result.Error);
-            throw new YtDlpException(
-                $"Failed to download video (ExitCode: {result.ExitCode}): {result.Error}",
-                result.ExitCode,
-                result.Error);
-        }
+            var directory = Path.GetDirectoryName(outputPath);
+            if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
 
-        if (!File.Exists(outputPath))
-        {
-            throw new YtDlpException($"Download completed but file not found at {outputPath}");
-        }
+            var arguments = BuildDownloadArguments(outputPath);
+            var result = await ExecuteYtDlpWithProgressAsync(arguments, url, progressCallback, cancellationToken);
 
-        _logger.LogInformation("Downloaded video to {OutputPath}", outputPath);
-        return outputPath;
+            if (result.ExitCode != 0)
+            {
+                throw new YtDlpException(
+                    $"Failed to download video (ExitCode: {result.ExitCode}): {result.Error}",
+                    result.ExitCode,
+                    result.Error);
+            }
+
+            if (!File.Exists(outputPath))
+            {
+                throw new YtDlpException($"Download completed but file not found at {outputPath}");
+            }
+
+            _logger.LogInformation("Downloaded video to {OutputPath}", outputPath);
+            return outputPath;
+        }, cancellationToken);
     }
 
     /// <inheritdoc/>
@@ -198,18 +227,16 @@ public class YtDlpClient : IYtDlpClient
     {
         _logger.LogDebug("Downloading thumbnail for video {VideoId}", videoId);
 
-        // Ensure output directory exists
         if (!Directory.Exists(outputDir))
         {
             Directory.CreateDirectory(outputDir);
         }
 
-        // Use yt-dlp to download the best quality thumbnail
-        // --write-thumbnail downloads thumbnail, --no-download skips the video
         var arguments = $"--write-thumbnail --no-download --no-warnings -o \"{outputDir}/{videoId}.%(ext)s\" \"https://www.youtube.com/watch?v={videoId}\"";
 
         try
         {
+            await EnforceRateLimitAsync(cancellationToken);
             var result = await ExecuteYtDlpAsync(arguments, $"https://www.youtube.com/watch?v={videoId}", cancellationToken);
 
             if (result.ExitCode != 0)
@@ -218,7 +245,6 @@ public class YtDlpClient : IYtDlpClient
                 return null;
             }
 
-            // Find the downloaded thumbnail (could be .jpg, .png, .webp)
             var files = Directory.GetFiles(outputDir, $"{videoId}.*")
                 .Where(f => f.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) ||
                             f.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ||
@@ -231,7 +257,6 @@ public class YtDlpClient : IYtDlpClient
                 return null;
             }
 
-            // Prefer jpg, then png, then webp
             var thumbnail = files.FirstOrDefault(f => f.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase))
                           ?? files.FirstOrDefault(f => f.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
                           ?? files.First();
@@ -246,24 +271,105 @@ public class YtDlpClient : IYtDlpClient
         }
     }
 
-    private string? GetCookiesArgument()
+    private async Task<T> ExecuteWithRetryAsync<T>(Func<Task<T>> operation, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrEmpty(_cookiesPath) || !File.Exists(_cookiesPath))
+        var attempt = 0;
+        var currentDelay = _options.MinRequestDelaySeconds;
+
+        while (true)
         {
-            return null;
+            attempt++;
+
+            try
+            {
+                return await operation();
+            }
+            catch (YtDlpException ex) when (IsRetryableError(ex.ErrorOutput) && attempt <= _options.MaxRetries)
+            {
+                var delay = currentDelay;
+
+                if (_options.EnableExponentialBackoff)
+                {
+                    currentDelay = Math.Min(currentDelay * 2, _options.MaxBackoffSeconds);
+                }
+
+                _logger.LogWarning(
+                    "yt-dlp encountered rate limit (attempt {Attempt}/{Max}). Waiting {Delay}s before retry. Error: {Error}",
+                    attempt,
+                    _options.MaxRetries,
+                    delay,
+                    ex.ErrorOutput);
+
+                await Task.Delay(delay * 1000, cancellationToken);
+            }
+        }
+    }
+
+    private static bool IsRetryableError(string? error)
+    {
+        if (string.IsNullOrEmpty(error))
+            return false;
+
+        var lower = error.ToLowerInvariant();
+        return lower.Contains("429") ||
+               lower.Contains("rate limit") ||
+               lower.Contains("too many requests") ||
+               lower.Contains("sign in") ||
+               lower.Contains("bot") ||
+               lower.Contains("confirm");
+    }
+
+    private async Task EnforceRateLimitAsync(CancellationToken cancellationToken)
+    {
+        if (_options.MinRequestDelaySeconds <= 0)
+        {
+            return;
         }
 
-        return $"--cookies \"{_cookiesPath}\"";
+        await _rateLimitLock.WaitAsync(cancellationToken);
+
+        try
+        {
+            var timeSinceLastRequest = DateTime.UtcNow - _lastRequestTime;
+            var randomJitter = _random.Next(
+                _options.MinRequestDelaySeconds * 1000,
+                _options.MaxRequestDelaySeconds * 1000 + 1);
+            var minDelay = TimeSpan.FromMilliseconds(randomJitter);
+            var actualDelay = minDelay - timeSinceLastRequest;
+
+            if (actualDelay > TimeSpan.Zero)
+            {
+                _logger.LogDebug("Rate limiting: waiting {Delay:F1}s before yt-dlp call", actualDelay.TotalSeconds);
+                await Task.Delay(actualDelay, cancellationToken);
+            }
+
+            _lastRequestTime = DateTime.UtcNow;
+        }
+        finally
+        {
+            _rateLimitLock.Release();
+        }
+    }
+
+    private string BuildGlobalArguments()
+    {
+        var args = new List<string>();
+
+        if (!string.IsNullOrEmpty(_options.CookiesPath) && File.Exists(_options.CookiesPath))
+        {
+            args.Add($"--cookies \"{_options.CookiesPath}\"");
+        }
+
+        if (!string.IsNullOrEmpty(_options.ProxyUrl))
+        {
+            args.Add($"--proxy \"{_options.ProxyUrl}\"");
+        }
+
+        return string.Join(" ", args);
     }
 
     private static string BuildDownloadArguments(string outputPath)
     {
-        // Prefer pre-merged 480p MP4 from YouTube, fallback to separate video+audio merge
-        // Format selector priority:
-        // 1. Pre-merged 480p MP4 (best[height<=480][ext=mp4])
-        // 2. Separate 480p MP4 video + m4a audio merged
-        // 3. 480p MP4 video + any audio merged
-        // 4. Best available up to 480p
         return $"-f \"bestvideo[height<=480][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=480][ext=mp4]+bestaudio/best[height<=480][ext=mp4]/best[height<=480]\" " +
                $"--merge-output-format mp4 " +
                $"--no-playlist " +
@@ -287,10 +393,10 @@ public class YtDlpClient : IYtDlpClient
         Action<DownloadProgress>? progressCallback,
         CancellationToken cancellationToken)
     {
-        var cookiesArg = GetCookiesArgument();
-        var fullArguments = string.IsNullOrEmpty(cookiesArg)
+        var globalArgs = BuildGlobalArguments();
+        var fullArguments = string.IsNullOrEmpty(globalArgs)
             ? $"{arguments} \"{url}\""
-            : $"{cookiesArg} {arguments} \"{url}\"";
+            : $"{globalArgs} {arguments} \"{url}\"";
 
         using var process = new Process
         {
@@ -314,10 +420,8 @@ public class YtDlpClient : IYtDlpClient
 
         process.Start();
 
-        // Read output stream asynchronously
         var outputTask = ReadStreamAsync(process.StandardOutput, outputBuilder);
 
-        // Read error stream - either with progress parsing or just capturing
         Task errorTask;
         if (progressCallback != null)
         {
@@ -328,7 +432,6 @@ public class YtDlpClient : IYtDlpClient
             errorTask = ReadStreamAsync(process.StandardError, errorBuilder);
         }
 
-        // Wait for process to complete with timeout
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         cts.CancelAfter(_defaultTimeout);
 
@@ -338,7 +441,6 @@ public class YtDlpClient : IYtDlpClient
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            // Timeout occurred
             try
             {
                 process.Kill(entireProcessTree: true);
@@ -379,7 +481,6 @@ public class YtDlpClient : IYtDlpClient
         {
             builder.AppendLine(line);
 
-            // Parse progress from the line and invoke callback
             var progress = ParseProgressLine(line);
             if (progress != null)
             {
@@ -390,21 +491,17 @@ public class YtDlpClient : IYtDlpClient
 
     private static DownloadProgress? ParseProgressLine(string line)
     {
-        // yt-dlp progress lines are typically in format:
-        // [download]  50.3% of 123.45MiB at 1.23MiB/s ETA 00:30
         if (!line.Contains("[download]"))
             return null;
 
         var progress = new DownloadProgress { Status = "downloading" };
 
-        // Extract percentage
         var percentMatch = System.Text.RegularExpressions.Regex.Match(line, @"(\d+\.?\d*)%");
         if (percentMatch.Success && double.TryParse(percentMatch.Groups[1].Value, out var percent))
         {
             progress = progress with { Progress = percent };
         }
 
-        // Extract download speed
         var speedMatch = System.Text.RegularExpressions.Regex.Match(line, @"at\s+([\d.]+[KMGT]?i?B/s)");
         if (speedMatch.Success)
         {
@@ -412,14 +509,12 @@ public class YtDlpClient : IYtDlpClient
             progress = progress with { Speed = ParseSpeed(speedStr) };
         }
 
-        // Extract ETA
         var etaMatch = System.Text.RegularExpressions.Regex.Match(line, @"ETA\s+(\d+:\d+(?::\d+)?)");
         if (etaMatch.Success)
         {
             progress = progress with { Eta = ParseEta(etaMatch.Groups[1].Value) };
         }
 
-        // Check for completion
         if (line.Contains("has already been downloaded") || line.Contains("Merging"))
         {
             progress = progress with { Status = "finished" };

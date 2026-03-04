@@ -78,6 +78,104 @@ Restart the service to pick up the new configuration. You should see in the logs
 yt-dlp configured with cookies from /path/to/cookies.txt
 ```
 
+---
+
+## Bot Detection Mitigation
+
+Even with cookies, YouTube may still flag suspicious activity. Yallarhorn includes several features to avoid bot detection:
+
+### Rate Limiting with Random Delays
+
+By default, Yallarhorn adds random delays between yt-dlp calls:
+
+```json
+{
+  "Ytdlp": {
+    "MinRequestDelaySeconds": 2,
+    "MaxRequestDelaySeconds": 5
+  }
+}
+```
+
+This randomizes delays between 2-5 seconds to appear more human-like.
+
+### Exponential Backoff
+
+When YouTube returns rate limit errors (HTTP 429), Yallarhorn automatically:
+
+1. Detects the error
+2. Waits with exponential backoff
+3. Retries the request
+
+Configure backoff behavior:
+
+```json
+{
+  "Ytdlp": {
+    "EnableExponentialBackoff": true,
+    "MaxBackoffSeconds": 300,
+    "MaxRetries": 3
+  }
+}
+```
+
+### Proxy Support (Recommended)
+
+Routing requests through a proxy or VPN helps avoid IP-based bot detection:
+
+**HTTP Proxy:**
+```bash
+export YALLARHORN_YTDLP_PROXY_URL=http://proxy.example.com:8080
+```
+
+**SOCKS5 Proxy:**
+```bash
+export YALLARHORN_YTDLP_PROXY_URL=socks5://127.0.0.1:1080
+```
+
+**Docker:**
+```yaml
+environment:
+  - YALLARHORN_YTDLP_PROXY_URL=http://proxy.example.com:8080
+```
+
+### Best Practices
+
+1. **Use a proxy/VPN** - This is the most effective way to avoid IP-based detection
+2. **Enable rate limiting** - Keep default delays (2-5 seconds minimum)
+3. **Use cookies** - Always export fresh cookies from a logged-in browser
+4. **Don't queue too many channels** - Stagger your channel refreshes
+5. **Schedule during off-peak hours** - Less traffic = less scrutiny
+
+---
+
+## Configuration Options
+
+All yt-dlp options can be set in `appsettings.json`:
+
+```json
+{
+  "Ytdlp": {
+    "CookiesPath": null,
+    "ProxyUrl": null,
+    "MinRequestDelaySeconds": 2,
+    "MaxRequestDelaySeconds": 5,
+    "EnableExponentialBackoff": true,
+    "MaxBackoffSeconds": 300,
+    "MaxRetries": 3
+  }
+}
+```
+
+**Environment Variables:**
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `YALLARHORN_YTDLP_COOKIES_PATH` | Path to cookies.txt file | null |
+| `YALLARHORN_YTDLP_PROXY_URL` | HTTP/SOCKS5 proxy URL | null |
+
+---
+
 ## Important Notes
 
 ### Security
@@ -111,6 +209,8 @@ chown 1000:1000 cookies.txt
 To verify cookies are working, check the logs when Yallarhorn starts:
 
 - ✅ Good: `yt-dlp configured with cookies from /path/to/cookies.txt`
+- ✅ Good: `yt-dlp configured with proxy: http://proxy.example.com:8080`
+- ✅ Good: `yt-dlp rate limiting enabled: 2-5s delay, backoff: enabled, retries: 3`
 - ❌ Bad: `Cookies file not found at /path/to/cookies.txt`
 
 ## Troubleshooting
@@ -124,6 +224,13 @@ To verify cookies are working, check the logs when Yallarhorn starts:
 - Ensure you're logged into YouTube in the browser you exported from
 - Try logging out and back into YouTube
 - Re-export the cookies file
+- **Enable proxy** - This is often required for heavy usage
+
+**Rate limit errors (HTTP 429)**
+- Increase `MinRequestDelaySeconds` (try 5-10)
+- Increase `MaxBackoffSeconds` (try 600)
+- Use a proxy/VPN to appear from different IPs
+- Reduce the number of channels you're syncing
 
 **"Permission denied"**
 - Check file permissions with `ls -la cookies.txt`

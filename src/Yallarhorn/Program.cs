@@ -117,6 +117,16 @@ if (!string.IsNullOrEmpty(cookiesPathEnv))
     });
 }
 
+// Add environment variable mapping for yt-dlp proxy
+var proxyUrlEnv = Environment.GetEnvironmentVariable("YALLARHORN_YTDLP_PROXY_URL");
+if (!string.IsNullOrEmpty(proxyUrlEnv))
+{
+    builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+    {
+        ["Ytdlp:ProxyUrl"] = proxyUrlEnv
+    });
+}
+
 // Add Serilog logging
 builder.AddYallarhornLogging();
 
