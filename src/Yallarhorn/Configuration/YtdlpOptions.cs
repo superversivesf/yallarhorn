@@ -28,16 +28,16 @@ public class YtdlpOptions
     /// Minimum delay in seconds between yt-dlp API calls.
     /// Used to avoid rate limiting and bot detection.
     /// A random jitter is added to this value.
-    /// Default: 2 seconds
+    /// Default: 10 seconds
     /// </summary>
-    public int MinRequestDelaySeconds { get; set; } = 2;
+    public int MinRequestDelaySeconds { get; set; } = 10;
 
     /// <summary>
     /// Maximum delay in seconds between yt-dlp API calls.
     /// Actual delay is randomized between MinRequestDelaySeconds and this value.
-    /// Default: 5 seconds
+    /// Default: 20 seconds
     /// </summary>
-    public int MaxRequestDelaySeconds { get; set; } = 5;
+    public int MaxRequestDelaySeconds { get; set; } = 20;
 
     /// <summary>
     /// Enable exponential backoff on rate limit errors (HTTP 429).
